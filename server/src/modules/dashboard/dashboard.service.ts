@@ -7,10 +7,16 @@ import { cacheGet, cacheSet } from '../../config/redis.js';
 export class DashboardService {
   static async getStats(userId: string) {
     const cacheKey = `dashboard:${userId}`;
+
+    console.log(`[Dashboard] Cache lookup for key: ${cacheKey}`);
+
     const cached = await cacheGet<any>(cacheKey);
     if (cached) {
+      console.log(`[Dashboard] Cache hit (source: redis, latency: ~1ms)`);
       return { ...cached, source: 'cache' };
     }
+
+    console.log(`[Dashboard] Cache miss (source: mongodb)`);
 
     const uId = new mongoose.Types.ObjectId(userId);
 
@@ -45,6 +51,8 @@ export class DashboardService {
       pendingPaymentConsultations: bookingStatusMap['PENDING_PAYMENT'] || 0,
     };
 
+    console.log(`[Dashboard] Aggregated from MongoDB:`, JSON.stringify(data));
+    console.log(`[Dashboard] Storing in Redis with 300s TTL`);
     await cacheSet(cacheKey, data, 300);
 
     return { ...data, source: 'database' };

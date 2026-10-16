@@ -64,11 +64,12 @@ export class ChatController {
 
   static async sendMessage(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { message } = req.body;
+      const { message, model } = req.body;
       const { userMsg, botMsg } = await ChatService.sendMessage(
         req.params.id,
         req.user!.userId,
-        message
+        message,
+        model
       );
       res.status(200).json({ success: true, data: { userMsg, botMsg } });
     } catch (error) {
@@ -78,7 +79,7 @@ export class ChatController {
 
   static async streamMessage(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { message } = req.body;
+      const { message, model } = req.body;
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
@@ -89,7 +90,8 @@ export class ChatController {
         message,
         (chunk) => {
           res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`);
-        }
+        },
+        model
       );
 
       res.write(`data: [DONE]\n\n`);

@@ -3,62 +3,98 @@ import { config } from './env.js';
 
 let redisClient: Redis | null = null;
 
-if (config.redisUrl) {
+let formattedRedisUrl = config.redisUrl;
+if (
+  formattedRedisUrl &&
+  formattedRedisUrl.includes('upstash.io') &&
+  formattedRedisUrl.startsWith('redis://')
+) {
+  formattedRedisUrl = formattedRedisUrl.replace('redis://', 'rediss://');
+}
+
+if (formattedRedisUrl) {
   try {
-    redisClient = new Redis(config.redisUrl, {
-      maxRetriesPerRequest: 1,
-      enableOfflineQueue: false,
+    redisClient = new Redis(formattedRedisUrl, {
+      connectTimeout: 10000,
+      keepAlive: 15000,
+      enableOfflineQueue: true,
+      maxRetriesPerRequest: null,
       retryStrategy: (times) => {
-        if (times > 3) return null;
-        return Math.min(times * 100, 1000);
+        return Math.min(times * 200, 2000);
       },
     });
 
-    redisClient.on('connect', () => {
-      console.log('Redis connected successfully');
+    redisClient.once('connect', () => {
+      console.log('[Redis] Connected successfully to Redis server');
+    });
+
+    redisClient.on('ready', () => {
+      console.log('[Redis] Client is ready for caching operations');
     });
 
     redisClient.on('error', (err) => {
-      console.warn('Redis warning (continuing without cache):', err.message);
+      if (
+        err.message?.includes('closed') ||
+        err.message?.includes('ECONNRESET') ||
+        err.message?.includes('max retries')
+      ) {
+        return;
+      }
+      console.warn('[Redis Warning]:', err.message);
     });
   } catch (error) {
-    console.warn('Redis initialization skipped:', error);
+    console.warn('[Redis] Initialization skipped:', error);
     redisClient = null;
   }
+} else {
+  console.log('[Redis] No REDIS_URL provided. Operating in direct database mode.');
 }
 
+const isRedisAvailable = (): boolean => {
+  return (
+    redisClient !== null &&
+    (redisClient.status === 'ready' || redisClient.status === 'connect')
+  );
+};
+
 export const cacheGet = async <T>(key: string): Promise<T | null> => {
-  if (!redisClient) return null;
+  if (!isRedisAvailable() || !redisClient) return null;
   try {
     const data = await redisClient.get(key);
-    return data ? (JSON.parse(data) as T) : null;
+    if (data) {
+      return JSON.parse(data) as T;
+    }
+    return null;
   } catch {
     return null;
   }
 };
 
 export const cacheSet = async (key: string, value: unknown, ttlSeconds = 300): Promise<void> => {
-  if (!redisClient) return;
+  if (!isRedisAvailable() || !redisClient) return;
   try {
-    await redisClient.set(key, JSON.stringify(value), 'EX', ttlSeconds);
+    const serialized = JSON.stringify(value);
+    await redisClient.set(key, serialized, 'EX', ttlSeconds);
   } catch {
-    // Ignore cache write errors
+    // Ignore cache set transient issues
   }
 };
 
 export const cacheDel = async (keyPatternOrKey: string): Promise<void> => {
-  if (!redisClient) return;
+  if (!isRedisAvailable() || !redisClient) return;
   try {
     if (keyPatternOrKey.includes('*')) {
       const keys = await redisClient.keys(keyPatternOrKey);
       if (keys.length > 0) {
         await redisClient.del(...keys);
+        console.log(`[Redis] Cache invalidation: removed ${keys.length} keys`);
       }
     } else {
       await redisClient.del(keyPatternOrKey);
+      console.log(`[Redis] Cache invalidation: key "${keyPatternOrKey}" removed`);
     }
   } catch {
-    // Ignore cache delete errors
+    // Ignore cache del transient issues
   }
 };
 

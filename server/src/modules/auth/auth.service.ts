@@ -104,9 +104,21 @@ export class AuthService {
         throw err;
       }
 
-      const isValid = await bcrypt.compare(refreshToken, user.refreshTokenHash);
+      let isValid = await bcrypt.compare(refreshToken, user.refreshTokenHash);
+
+      if (!isValid && user.previousRefreshTokenHash && user.rotatedAt) {
+        const timeDiff = Date.now() - user.rotatedAt.getTime();
+        if (timeDiff < 30000) {
+          const isPreviousValid = await bcrypt.compare(refreshToken, user.previousRefreshTokenHash);
+          if (isPreviousValid) {
+            isValid = true;
+          }
+        }
+      }
+
       if (!isValid) {
         user.refreshTokenHash = undefined;
+        user.previousRefreshTokenHash = undefined;
         await user.save();
         const err: any = new Error('Token reuse detected or revoked');
         err.statusCode = 403;
@@ -114,6 +126,8 @@ export class AuthService {
       }
 
       const tokens = this.generateTokens(user);
+      user.previousRefreshTokenHash = user.refreshTokenHash;
+      user.rotatedAt = new Date();
       user.refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 8);
       await user.save();
 

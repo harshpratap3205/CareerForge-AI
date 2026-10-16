@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger.js';
 import { config } from './config/env.js';
+import cookieParser from 'cookie-parser';
 import { globalLimiter } from './middlewares/rateLimiter.middleware.js';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware.js';
 
@@ -26,6 +27,7 @@ app.use(
   })
 );
 
+app.use(cookieParser());
 app.use('/api/payments/webhook', paymentRoutes);
 
 app.use(express.json());

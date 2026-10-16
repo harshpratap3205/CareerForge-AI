@@ -10,7 +10,7 @@ export class ResumeService {
     if (!config.gemini.apiKey) return null;
     const genAI = new GoogleGenerativeAI(config.gemini.apiKey);
     return genAI.getGenerativeModel({
-      model: 'gemini-3.8-flash',
+      model: 'gemini-flash-latest',
       generationConfig: { responseMimeType: 'application/json' },
     });
   }

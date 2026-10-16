@@ -10,6 +10,7 @@ import {
   Edit2,
   Send,
   User as UserIcon,
+  Cpu,
 } from 'lucide-react';
 
 interface ChatSession {
@@ -25,12 +26,19 @@ interface ChatMessage {
   createdAt?: string;
 }
 
+const AVAILABLE_MODELS = [
+  { id: 'gemini-flash-latest', name: 'Gemini Flash (Recommended)' },
+  { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash' },
+  { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash' },
+];
+
 export default function ChatPage() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('gemini-flash-latest');
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
   const [editTitleText, setEditTitleText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -132,24 +140,85 @@ export default function ChatPage() {
     setInput('');
     setSending(true);
 
-    const optimisticUserMsg: ChatMessage = { role: 'user', content: userText };
-    setMessages((prev) => [...prev, optimisticUserMsg]);
+    const userMsg: ChatMessage = { role: 'user', content: userText };
+    const botPlaceholder: ChatMessage = { role: 'model', content: '' };
+
+    setMessages((prev) => [...prev, userMsg, botPlaceholder]);
 
     try {
-      const res = await api.post(`/chat/sessions/${targetSessionId}/messages`, {
-        message: userText,
-      });
-      const botMsg = res.data.data.botMsg;
-      setMessages((prev) => [...prev, botMsg]);
-    } catch (err) {
-      console.error('Failed to send message:', err);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'model',
-          content: 'Unable to connect to advisory service. Please check your network.',
+      const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : '';
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
+      const response = await fetch(`${apiBase}/chat/sessions/${targetSessionId}/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
-      ]);
+        body: JSON.stringify({ message: userText, model: selectedModel }),
+      });
+
+      if (!response.ok || !response.body) {
+        throw new Error('Streaming failed, falling back');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = '';
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        const chunkText = decoder.decode(value);
+        const lines = chunkText.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const dataStr = line.slice(6).trim();
+            if (dataStr === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(dataStr);
+              if (parsed.text) {
+                accumulated += parsed.text;
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  updated[updated.length - 1] = {
+                    role: 'model',
+                    content: accumulated,
+                  };
+                  return updated;
+                });
+              }
+            } catch {
+              // Ignore partial JSON chunks
+            }
+          }
+        }
+      }
+    } catch {
+      // Fallback to non-streaming if stream drops
+      try {
+        const res = await api.post(`/chat/sessions/${targetSessionId}/messages`, {
+          message: userText,
+          model: selectedModel,
+        });
+        const botMsg = res.data.data.botMsg;
+        setMessages((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1] = botMsg;
+          return updated;
+        });
+      } catch {
+        setMessages((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1] = {
+            role: 'model',
+            content: 'Unable to connect to advisory service. Please check your network.',
+          };
+          return updated;
+        });
+      }
     } finally {
       setSending(false);
       fetchSessions();
@@ -227,6 +296,29 @@ export default function ChatPage() {
         </aside>
 
         <section className="flex-1 flex flex-col bg-white">
+          <div className="p-3 border-b border-neutral-200 flex items-center justify-between bg-neutral-50/30">
+            <div className="text-xs font-medium text-neutral-800 truncate">
+              {sessions.find((s) => s._id === activeSessionId)?.title || 'Advisory Thread'}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-neutral-500 font-medium flex items-center gap-1">
+                <Cpu className="w-3 h-3" /> Model:
+              </span>
+              <select
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                className="text-xs bg-white border border-neutral-300 rounded px-2 py-1 text-neutral-800 focus:outline-none focus:border-neutral-900"
+              >
+                {AVAILABLE_MODELS.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
             {messages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center max-w-sm mx-auto">
@@ -235,7 +327,7 @@ export default function ChatPage() {
                 </div>
                 <h3 className="font-semibold text-neutral-900 text-sm">Advisory Console</h3>
                 <p className="text-xs text-neutral-500 mt-0.5 leading-relaxed">
-                  Discuss interview strategies, resume structure, or technical positioning.
+                  Fast streaming responses with contextual conversation memory and customizable models.
                 </p>
               </div>
             ) : (
@@ -260,17 +352,11 @@ export default function ChatPage() {
                           : 'bg-neutral-100 text-neutral-900 border border-neutral-200'
                       }`}
                     >
-                      <p className="whitespace-pre-wrap">{m.content}</p>
+                      <p className="whitespace-pre-wrap">{m.content || '...'}</p>
                     </div>
                   </div>
                 );
               })
-            )}
-            {sending && (
-              <div className="flex items-center gap-2 text-xs text-neutral-400">
-                <div className="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-pulse" />
-                <span>Generating response...</span>
-              </div>
             )}
             <div ref={messagesEndRef} />
           </div>

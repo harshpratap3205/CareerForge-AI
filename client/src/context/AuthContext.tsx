@@ -15,7 +15,7 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (tokens: { accessToken: string; refreshToken: string }, user: User) => void;
+  login: (tokens: { accessToken: string }, user: User) => void;
   logout: () => Promise<void>;
   updateUser: (user: User) => void;
 }
@@ -44,7 +44,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(res.data.data.user);
           localStorage.setItem('user', JSON.stringify(res.data.data.user));
         } catch {
-          setUser(null);
+          // Attempt silent refresh via HttpOnly cookie if access token expired
+          try {
+            const refreshRes = await api.post('/auth/refresh');
+            const newAccessToken = refreshRes.data.data.tokens.accessToken;
+            localStorage.setItem('accessToken', newAccessToken);
+            const userRes = await api.get('/auth/me');
+            setUser(userRes.data.data.user);
+            localStorage.setItem('user', JSON.stringify(userRes.data.data.user));
+          } catch {
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('user');
+            setUser(null);
+          }
         }
       }
       setLoading(false);
@@ -53,9 +65,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, []);
 
-  const login = (tokens: { accessToken: string; refreshToken: string }, userData: User) => {
+  const login = (tokens: { accessToken: string }, userData: User) => {
     localStorage.setItem('accessToken', tokens.accessToken);
-    localStorage.setItem('refreshToken', tokens.refreshToken);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
   };
@@ -67,7 +78,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Ignore logout network failure
     } finally {
       localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       setUser(null);
       window.location.href = '/login';

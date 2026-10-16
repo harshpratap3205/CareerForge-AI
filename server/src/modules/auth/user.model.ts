@@ -16,6 +16,8 @@ export interface IUser extends Document {
     experienceYears?: number;
   };
   refreshTokenHash?: string;
+  previousRefreshTokenHash?: string;
+  rotatedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -59,6 +61,12 @@ const UserSchema = new Schema<IUser>(
     refreshTokenHash: {
       type: String,
     },
+    previousRefreshTokenHash: {
+      type: String,
+    },
+    rotatedAt: {
+      type: Date,
+    },
   },
   {
     timestamps: true,
@@ -66,6 +74,7 @@ const UserSchema = new Schema<IUser>(
       transform: (_, ret) => {
         delete (ret as Record<string, unknown>).passwordHash;
         delete (ret as Record<string, unknown>).refreshTokenHash;
+        delete (ret as Record<string, unknown>).previousRefreshTokenHash;
         delete (ret as Record<string, unknown>).__v;
         return ret;
       },

@@ -2,16 +2,29 @@ import { Request, Response, NextFunction } from 'express';
 import { AuthService } from './auth.service.js';
 import { User } from './user.model.js';
 
+const REFRESH_COOKIE_NAME = 'refreshToken';
+
+const getCookieOptions = () => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: (process.env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax',
+  path: '/',
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+});
+
 export class AuthController {
   static async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { user, tokens } = await AuthService.register(req.body);
+      res.cookie(REFRESH_COOKIE_NAME, tokens.refreshToken, getCookieOptions());
       res.status(201).json({
         success: true,
         message: 'User registered successfully',
         data: {
           user,
-          tokens,
+          tokens: {
+            accessToken: tokens.accessToken,
+          },
         },
       });
     } catch (error) {
@@ -23,12 +36,15 @@ export class AuthController {
     try {
       const { email, password } = req.body;
       const { user, tokens } = await AuthService.login(email, password);
+      res.cookie(REFRESH_COOKIE_NAME, tokens.refreshToken, getCookieOptions());
       res.status(200).json({
         success: true,
         message: 'Login successful',
         data: {
           user,
-          tokens,
+          tokens: {
+            accessToken: tokens.accessToken,
+          },
         },
       });
     } catch (error) {
@@ -38,12 +54,21 @@ export class AuthController {
 
   static async refresh(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { refreshToken } = req.body;
+      const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME] || req.body?.refreshToken;
+      if (!refreshToken) {
+        res.status(401).json({ success: false, message: 'Refresh token missing' });
+        return;
+      }
       const tokens = await AuthService.refresh(refreshToken);
+      res.cookie(REFRESH_COOKIE_NAME, tokens.refreshToken, getCookieOptions());
       res.status(200).json({
         success: true,
         message: 'Tokens refreshed',
-        data: { tokens },
+        data: {
+          tokens: {
+            accessToken: tokens.accessToken,
+          },
+        },
       });
     } catch (error) {
       next(error);
@@ -52,6 +77,7 @@ export class AuthController {
 
   static async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      res.clearCookie(REFRESH_COOKIE_NAME, { path: '/' });
       if (req.user?.userId) {
         await AuthService.logout(req.user.userId);
       }
