@@ -5,25 +5,28 @@ export class UserController {
   static async updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { name, phone, profile } = req.body;
-      const updated = await User.findByIdAndUpdate(
-        req.user?.userId,
-        {
-          ...(name && { name }),
-          ...(phone !== undefined && { phone }),
-          ...(profile && { profile }),
-        },
-        { new: true, runValidators: true }
-      );
+      const user = await User.findById(req.user?.userId);
 
-      if (!updated) {
+      if (!user) {
         res.status(404).json({ success: false, message: 'User not found' });
         return;
       }
 
+      if (name) user.name = name.trim();
+      if (phone !== undefined) user.phone = phone.trim();
+      if (profile) {
+        user.profile = {
+          ...(user.profile || {}),
+          ...profile,
+        };
+      }
+
+      await user.save();
+
       res.status(200).json({
         success: true,
         message: 'Profile updated successfully',
-        data: { user: updated },
+        data: { user },
       });
     } catch (error) {
       next(error);

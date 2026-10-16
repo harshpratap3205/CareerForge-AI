@@ -9,7 +9,6 @@ import {
   Trash2,
   Edit2,
   Send,
-  User as UserIcon,
   Cpu,
   Sparkles,
   Menu,
@@ -446,33 +445,23 @@ export default function ChatPage() {
                 const isUser = m.role === 'user';
                 const isLatestBot = !isUser && idx === messages.length - 1 && sending;
 
+                if (isUser) {
+                  return (
+                    <div key={idx} className="flex justify-end my-1">
+                      <div className="max-w-[85%] sm:max-w-xl bg-neutral-100 hover:bg-neutral-100/90 text-neutral-900 rounded-2xl px-4 py-2.5 text-xs sm:text-[13px] leading-relaxed shadow-2xs">
+                        <p className="whitespace-pre-wrap break-words">{m.content}</p>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
-                  <div
-                    key={idx}
-                    className={clsx(
-                      'flex items-start gap-3',
-                      isUser ? 'flex-row-reverse' : 'flex-row'
-                    )}
-                  >
-                    <div
-                      className={clsx(
-                        'w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold shadow-2xs',
-                        isUser
-                          ? 'bg-neutral-900 text-white'
-                          : 'bg-indigo-600 text-white'
-                      )}
-                    >
-                      {isUser ? <UserIcon className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
+                  <div key={idx} className="flex items-start gap-3 my-2">
+                    <div className="w-7 h-7 rounded-lg bg-neutral-900 text-white flex items-center justify-center shrink-0 shadow-2xs mt-0.5">
+                      <Bot className="w-4 h-4 text-indigo-400" />
                     </div>
 
-                    <div
-                      className={clsx(
-                        'max-w-[85%] sm:max-w-2xl px-4 py-3 rounded-2xl text-xs sm:text-[13px] leading-relaxed shadow-2xs',
-                        isUser
-                          ? 'bg-neutral-900 text-white rounded-tr-xs'
-                          : 'bg-white text-neutral-800 border border-neutral-200 rounded-tl-xs'
-                      )}
-                    >
+                    <div className="flex-1 max-w-[90%] sm:max-w-3xl pt-1 text-xs sm:text-[13px] text-neutral-800 leading-relaxed">
                       <p className="whitespace-pre-wrap break-words">
                         {m.content}
                         {isLatestBot && (

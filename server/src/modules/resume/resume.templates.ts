@@ -20,56 +20,68 @@ export class ResumeTemplateEngine {
     ].filter(Boolean);
 
     return `
-<h1>${personalInfo?.fullName || 'Your Name'}</h1>
-<p>${contactParts.join(' &nbsp;|&nbsp; ')}</p>
-<hr />
+<div class="resume-modern-header">
+  <h1 style="color: #1e1b4b; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px;">${personalInfo?.fullName || 'Your Name'}</h1>
+  <p style="color: #4f46e5; font-size: 13px; font-weight: 600; margin-bottom: 6px;">${summary?.slice(0, 60) ? 'Professional Portfolio' : ''}</p>
+  <p style="color: #64748b; font-size: 12px; margin-bottom: 14px;">${contactParts.join(' &nbsp;&bull;&nbsp; ')}</p>
+  <hr style="border: none; border-top: 2px solid #e0e7ff; margin-bottom: 16px;" />
+</div>
 
-${summary ? `<h2>Professional Summary</h2>\n<p>${summary}</p>` : ''}
+${summary ? `
+<h2 style="color: #4338ca; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1.5px solid #e0e7ff; padding-bottom: 4px; margin-top: 14px; margin-bottom: 8px;">Executive Summary</h2>
+<p style="font-size: 13px; line-height: 1.6; color: #334155;">${summary}</p>
+` : ''}
 
 ${skills?.technical?.length ? `
-<h2>Core Competencies</h2>
-<p><strong>Technical Skills:</strong> ${skills.technical.join(', ')}</p>
-${skills.tools?.length ? `<p><strong>Tools & Frameworks:</strong> ${skills.tools.join(', ')}</p>` : ''}
+<h2 style="color: #4338ca; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1.5px solid #e0e7ff; padding-bottom: 4px; margin-top: 14px; margin-bottom: 8px;">Core Competencies</h2>
+<p style="font-size: 13px; margin-bottom: 4px;"><strong>Technical Skills:</strong> ${skills.technical.join(', ')}</p>
+${skills.tools?.length ? `<p style="font-size: 13px; margin-bottom: 4px;"><strong>Frameworks & Tools:</strong> ${skills.tools.join(', ')}</p>` : ''}
 ` : ''}
 
 ${experience?.length ? `
-<h2>Work Experience</h2>
+<h2 style="color: #4338ca; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1.5px solid #e0e7ff; padding-bottom: 4px; margin-top: 14px; margin-bottom: 8px;">Professional Experience</h2>
 ${experience.map(exp => `
-<h3>${exp.position} &mdash; ${exp.company}</h3>
-<p><em>${exp.startDate} &ndash; ${exp.current ? 'Present' : exp.endDate || ''}${exp.location ? ` | ${exp.location}` : ''}</em></p>
-<ul>
-  ${(exp.bullets || []).map(b => `<li>${b}</li>`).join('\n  ')}
-</ul>
+<div style="margin-bottom: 12px;">
+  <h3 style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 2px;">${exp.position} &mdash; <span style="color: #4f46e5; font-weight: 600;">${exp.company}</span></h3>
+  <p style="color: #64748b; font-size: 12px; font-style: italic; margin-bottom: 6px;">${exp.startDate} &ndash; ${exp.current ? 'Present' : exp.endDate || ''}${exp.location ? ` | ${exp.location}` : ''}</p>
+  <ul style="font-size: 13px; line-height: 1.5; color: #334155; padding-left: 18px;">
+    ${(exp.bullets || []).map(b => `<li>${b}</li>`).join('\n    ')}
+  </ul>
+</div>
 `).join('\n')}
 ` : ''}
 
 ${projects?.length ? `
-<h2>Featured Projects</h2>
+<h2 style="color: #4338ca; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1.5px solid #e0e7ff; padding-bottom: 4px; margin-top: 14px; margin-bottom: 8px;">Key Projects</h2>
 ${projects.map(proj => `
-<h3>${proj.name}${proj.link ? ` (${proj.link})` : ''}</h3>
-<p>${proj.description}</p>
-${proj.technologies?.length ? `<p><strong>Technologies:</strong> ${proj.technologies.join(', ')}</p>` : ''}
+<div style="margin-bottom: 10px;">
+  <h3 style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 2px;">${proj.name}${proj.link ? ` &mdash; <a href="${proj.link}" style="color: #4f46e5; font-size: 12px; text-decoration: none;">View Project</a>` : ''}</h3>
+  <p style="font-size: 13px; color: #334155; margin-bottom: 4px;">${proj.description}</p>
+  ${proj.technologies?.length ? `<p style="font-size: 12px; color: #64748b;"><strong>Technologies:</strong> ${proj.technologies.join(', ')}</p>` : ''}
+</div>
 `).join('\n')}
 ` : ''}
 
 ${education?.length ? `
-<h2>Education</h2>
+<h2 style="color: #4338ca; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1.5px solid #e0e7ff; padding-bottom: 4px; margin-top: 14px; margin-bottom: 8px;">Education & Credentials</h2>
 ${education.map(edu => `
-<h3>${edu.degree} in ${edu.fieldOfStudy} &mdash; ${edu.institution}</h3>
-<p><em>${edu.startDate} &ndash; ${edu.endDate || 'Present'}${edu.gpa ? ` | GPA: ${edu.gpa}` : ''}</em></p>
+<div style="margin-bottom: 8px;">
+  <h3 style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 2px;">${edu.degree} in ${edu.fieldOfStudy} &mdash; ${edu.institution}</h3>
+  <p style="color: #64748b; font-size: 12px; font-style: italic;">${edu.startDate} &ndash; ${edu.endDate || 'Present'}${edu.gpa ? ` | GPA: ${edu.gpa}` : ''}</p>
+</div>
 `).join('\n')}
 ` : ''}
 
 ${certifications?.length ? `
-<h2>Certifications</h2>
-<ul>
+<h2 style="color: #4338ca; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1.5px solid #e0e7ff; padding-bottom: 4px; margin-top: 14px; margin-bottom: 8px;">Certifications</h2>
+<ul style="font-size: 13px; color: #334155; padding-left: 18px;">
   ${certifications.map(c => `<li><strong>${c.name}</strong> &mdash; ${c.issuer} (${c.issueDate || ''})</li>`).join('\n  ')}
 </ul>
 ` : ''}
 
 ${achievements?.length ? `
-<h2>Key Achievements</h2>
-<ul>
+<h2 style="color: #4338ca; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1.5px solid #e0e7ff; padding-bottom: 4px; margin-top: 14px; margin-bottom: 8px;">Key Achievements</h2>
+<ul style="font-size: 13px; color: #334155; padding-left: 18px;">
   ${achievements.map(a => `<li>${a}</li>`).join('\n  ')}
 </ul>
 ` : ''}

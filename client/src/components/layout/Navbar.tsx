@@ -11,7 +11,9 @@ import {
   FileText,
   CalendarCheck,
   PanelLeft,
+  UserCog,
 } from 'lucide-react';
+import { EditProfileModal } from '../profile/EditProfileModal';
 
 interface NavbarProps {
   onToggleSidebar?: () => void;
@@ -21,6 +23,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
   const { user, logout } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -55,11 +58,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
           </button>
         )}
 
-        <Link href="/dashboard" className="flex items-center gap-2.5">
-          <div className="w-7 h-7 bg-neutral-900 rounded-lg flex items-center justify-center text-white text-[11px] font-bold shadow-xs">
-            CF
-          </div>
-          <span className="font-bold text-sm tracking-tight text-neutral-900">
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <span className="font-bold text-base sm:text-lg tracking-tight text-neutral-900">
             CareerForge <span className="text-indigo-600 font-bold">AI</span>
           </span>
         </Link>
@@ -104,6 +104,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
                 </div>
 
                 <div className="py-1">
+                  <button
+                    onClick={() => {
+                      setProfileOpen(false);
+                      setIsEditProfileOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900 transition text-left cursor-pointer"
+                  >
+                    <UserCog className="w-3.5 h-3.5 text-neutral-400" />
+                    <span>Edit Profile</span>
+                  </button>
                   <Link
                     href="/dashboard"
                     onClick={() => setProfileOpen(false)}
@@ -170,6 +180,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
           </div>
         )}
       </div>
+
+      <EditProfileModal
+        isOpen={isEditProfileOpen}
+        onClose={() => setIsEditProfileOpen(false)}
+      />
     </header>
   );
 };

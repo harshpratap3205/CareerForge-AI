@@ -96,8 +96,14 @@ export class ChatController {
 
       res.write(`data: [DONE]\n\n`);
       res.end();
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      if (res.headersSent) {
+        res.write(`data: ${JSON.stringify({ error: error.message || 'Stream error' })}\n\n`);
+        res.write(`data: [DONE]\n\n`);
+        res.end();
+      } else {
+        next(error);
+      }
     }
   }
 }
