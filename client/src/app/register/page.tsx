@@ -3,9 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../context/AuthContext';
 import { api } from '../../lib/api';
-import { AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -15,7 +14,6 @@ export default function RegisterPage() {
   const [role, setRole] = useState<'USER' | 'CONSULTANT'>('USER');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,58 +22,64 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const res = await api.post('/auth/register', { name, email, password, role });
-      const { user, tokens } = res.data.data;
-      login({ accessToken: tokens.accessToken }, user);
-      router.push('/dashboard');
+      await api.post('/auth/register', {
+        name: name.trim(),
+        email: email.trim(),
+        password,
+        role,
+      });
+      // Redirect to login page with registered query param so the user logs in from /login
+      router.push('/login?registered=true');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create account');
+      setError(err.response?.data?.message || 'Failed to create account. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-4">
-      <div className="max-w-sm w-full bg-white p-7 rounded-lg border border-neutral-200">
+    <div className="min-h-screen flex items-center justify-center bg-neutral-50/80 px-4 py-8">
+      <div className="max-w-sm w-full bg-white p-8 rounded-xl border border-neutral-200 shadow-sm">
         <div className="flex items-center gap-2 mb-6">
-          <div className="w-6 h-6 bg-neutral-900 rounded flex items-center justify-center text-white text-[10px] font-bold">
+          <div className="w-7 h-7 bg-neutral-900 rounded-lg flex items-center justify-center text-white text-[11px] font-bold shadow-xs">
             CF
           </div>
-          <span className="font-semibold text-sm text-neutral-900">CareerForge</span>
+          <span className="font-semibold text-sm text-neutral-900 tracking-tight">CareerForge AI</span>
         </div>
 
         <h1 className="text-xl font-semibold text-neutral-900 mb-1">Create an account</h1>
-        <p className="text-xs text-neutral-500 mb-5">Fill in your information to get started</p>
+        <p className="text-xs text-neutral-500 mb-5">Fill in your information to register</p>
 
         {error && (
-          <div className="mb-4 p-2.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded flex items-center gap-2">
-            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-            <span>{error}</span>
+          <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-lg flex items-start gap-2.5 animate-in fade-in duration-200">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+            <span className="font-medium">{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-3.5">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-neutral-700 mb-1">Full Name</label>
             <input
               type="text"
               required
+              autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-neutral-300 rounded text-xs text-neutral-900 focus:outline-none focus:border-neutral-900"
+              className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 transition"
               placeholder="Alex Johnson"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-neutral-700 mb-1">Email</label>
+            <label className="block text-xs font-medium text-neutral-700 mb-1">Email address</label>
             <input
               type="email"
               required
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-neutral-300 rounded text-xs text-neutral-900 focus:outline-none focus:border-neutral-900"
+              className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 transition"
               placeholder="name@example.com"
             />
           </div>
@@ -87,9 +91,10 @@ export default function RegisterPage() {
                 type={showPassword ? 'text' : 'password'}
                 required
                 minLength={6}
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 pr-9 border border-neutral-300 rounded text-xs text-neutral-900 focus:outline-none focus:border-neutral-900"
+                className="w-full px-3 py-2 pr-9 border border-neutral-300 rounded-lg text-xs text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 transition"
                 placeholder="Minimum 6 characters"
               />
               <button
@@ -108,7 +113,7 @@ export default function RegisterPage() {
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as any)}
-              className="w-full px-3 py-2 border border-neutral-300 rounded text-xs text-neutral-900 bg-white focus:outline-none focus:border-neutral-900"
+              className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs text-neutral-900 bg-white focus:outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 transition"
             >
               <option value="USER">Candidate / Job Seeker</option>
               <option value="CONSULTANT">Career Consultant</option>
@@ -118,18 +123,27 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 bg-neutral-900 hover:bg-neutral-800 text-white font-medium rounded text-xs transition disabled:opacity-50"
+            className="w-full py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white font-medium rounded-lg text-xs transition duration-150 flex items-center justify-center gap-2 disabled:opacity-60 shadow-xs cursor-pointer"
           >
-            {loading ? 'Creating Account...' : 'Register'}
+            {loading ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>Creating Account...</span>
+              </>
+            ) : (
+              'Create Account'
+            )}
           </button>
         </form>
 
-        <p className="mt-5 text-center text-xs text-neutral-600">
-          Already registered?{' '}
-          <Link href="/login" className="font-medium text-neutral-900 underline">
-            Sign In
-          </Link>
-        </p>
+        <div className="mt-6 pt-5 border-t border-neutral-100 text-center">
+          <p className="text-xs text-neutral-600">
+            Already have an account?{' '}
+            <Link href="/login" className="font-semibold text-neutral-900 hover:underline">
+              Sign In
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

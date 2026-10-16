@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { Groq } from 'groq-sdk';
 import mongoose from 'mongoose';
 import { config } from '../../config/env.js';
 import { Resume, IResume } from './resume.model.js';
@@ -6,13 +7,28 @@ import { ResumeTemplateEngine } from './resume.templates.js';
 import { cacheDel } from '../../config/redis.js';
 
 export class ResumeService {
-  private static getGeminiModel() {
+  private static getGroqClient(): Groq | null {
+    if (!config.groq.apiKey) return null;
+    return new Groq({ apiKey: config.groq.apiKey });
+  }
+
+  private static getGeminiModel(modelName = 'gemini-flash-latest') {
     if (!config.gemini.apiKey) return null;
     const genAI = new GoogleGenerativeAI(config.gemini.apiKey);
     return genAI.getGenerativeModel({
-      model: 'gemini-flash-latest',
+      model: modelName,
       generationConfig: { responseMimeType: 'application/json' },
     });
+  }
+
+  private static isGroqModel(modelName: string): boolean {
+    return (
+      modelName.startsWith('openai/') ||
+      modelName.startsWith('qwen/') ||
+      modelName.startsWith('meta-llama/') ||
+      modelName.includes('llama') ||
+      modelName.includes('oss')
+    );
   }
 
   static async listResumes(userId: string) {
@@ -63,11 +79,17 @@ export class ResumeService {
       throw err;
     }
 
-    Object.assign(resume, updateData);
+    if (updateData.templateId) {
+      resume.templateId = updateData.templateId;
+    }
 
-    if (updateData.templateId || !resume.tiptapHtml) {
+    if (updateData.tiptapHtml) {
+      resume.tiptapHtml = updateData.tiptapHtml;
+    } else if (!resume.tiptapHtml) {
       resume.tiptapHtml = ResumeTemplateEngine.render(resume, resume.templateId);
     }
+
+    Object.assign(resume, updateData);
 
     const nextVer = (resume.versions?.length || 0) + 1;
     resume.versions.push({
@@ -140,65 +162,13 @@ export class ResumeService {
     yearsOfExperience?: number;
     rawSkills?: string[];
     userBio?: string;
+    model?: string;
   }) {
-    const model = this.getGeminiModel();
-    if (!model) {
-      return {
-        summary: `Results-driven ${promptData.targetRole} with proven track record of architecting scalable applications, enhancing operational efficiency, and driving high-impact technical initiatives.`,
-        skills: {
-          technical: promptData.rawSkills || ['TypeScript', 'Node.js', 'React', 'MongoDB', 'Docker', 'AWS'],
-          soft: ['Problem Solving', 'Cross-functional Collaboration', 'Agile Leadership'],
-          tools: ['Git', 'Postman', 'VS Code', 'Jira'],
-        },
-        experience: [
-          {
-            company: 'Tech Solutions Inc.',
-            position: `Senior ${promptData.targetRole}`,
-            location: 'Remote',
-            startDate: '2022-01',
-            endDate: 'Present',
-            current: true,
-            bullets: [
-              'Architected distributed microservices handling 2M+ requests daily with 99.98% uptime.',
-              'Mentored junior engineers and instituted code review standards reducing production incidents by 34%.',
-              'Implemented automated CI/CD deployment pipelines reducing deployment cycle time by 45%.',
-            ],
-          },
-        ],
-        education: [
-          {
-            institution: 'State University',
-            degree: 'Bachelor of Science',
-            fieldOfStudy: 'Computer Science',
-            startDate: '2017',
-            endDate: '2021',
-            gpa: '3.8/4.0',
-          },
-        ],
-        projects: [
-          {
-            name: 'Cloud Infrastructure Optimizer',
-            description: 'Automated resource right-sizing engine analyzing metrics to eliminate idle cloud compute spend.',
-            technologies: ['Node.js', 'TypeScript', 'AWS CloudWatch'],
-          },
-        ],
-        certifications: [
-          {
-            name: 'AWS Certified Solutions Architect',
-            issuer: 'Amazon Web Services',
-            issueDate: '2023',
-          },
-        ],
-        achievements: [
-          'Awarded Developer of the Year 2023 across an engineering department of 120+ contributors.',
-        ],
-      };
-    }
-
     const prompt = `
 Generate a structured, ATS-optimized resume in JSON format for a "${promptData.targetRole}" with ${promptData.yearsOfExperience || 3} years of experience.
-Candidate notes: ${promptData.userBio || 'Skilled full-stack developer'}.
-Return strictly a valid JSON matching this schema:
+Candidate notes: ${promptData.userBio || 'Skilled professional'}.
+Required skills context: ${(promptData.rawSkills || []).join(', ')}.
+Return strictly a valid JSON object matching this schema:
 {
   "summary": "string",
   "skills": {
@@ -245,13 +215,108 @@ Return strictly a valid JSON matching this schema:
 }
 `;
 
-    try {
-      const response = await model.generateContent(prompt);
-      const text = response.response.text();
-      return JSON.parse(text);
-    } catch (err) {
-      console.error('Gemini Resume Generation Error:', err);
-      throw new Error('Failed to generate resume with AI');
+    const modelsToTry = [
+      promptData.model || 'openai/gpt-oss-120b',
+      'openai/gpt-oss-120b',
+      'qwen/qwen3.8-27b',
+      'gemini-flash-latest',
+      'gemini-3.5-flash',
+    ].filter((m, idx, arr) => arr.indexOf(m) === idx);
+
+    for (const candidate of modelsToTry) {
+      try {
+        if (this.isGroqModel(candidate)) {
+          const groq = this.getGroqClient();
+          if (!groq) continue;
+
+          console.log(`[Resume AI] Generating structured resume with Groq model: ${candidate}`);
+          const comp = await groq.chat.completions.create({
+            model: candidate,
+            messages: [
+              {
+                role: 'system',
+                content:
+                  'You are an executive resume writer and ATS specialist. Return strictly a valid JSON object matching the requested schema. No conversational preamble, no markdown fences.',
+              },
+              { role: 'user', content: prompt },
+            ],
+            response_format: { type: 'json_object' },
+          });
+
+          const raw = comp.choices[0]?.message?.content || '{}';
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.summary) {
+            console.log(`[Resume AI] Successfully generated resume with Groq (${candidate})`);
+            return parsed;
+          }
+        } else {
+          const gemini = this.getGeminiModel(candidate);
+          if (!gemini) continue;
+
+          console.log(`[Resume AI] Generating structured resume with Gemini model: ${candidate}`);
+          const res = await gemini.generateContent(prompt);
+          const raw = res.response.text();
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.summary) {
+            console.log(`[Resume AI] Successfully generated resume with Gemini (${candidate})`);
+            return parsed;
+          }
+        }
+      } catch (err: any) {
+        console.warn(`[Resume AI] Candidate ${candidate} failed: ${err.message}. Retrying fallback...`);
+      }
     }
+
+    console.warn('[Resume AI] All remote models failed. Falling back to default structured resume.');
+    return {
+      summary: `Results-driven ${promptData.targetRole} with proven track record of architecting scalable applications, enhancing operational efficiency, and driving high-impact technical initiatives.`,
+      skills: {
+        technical: promptData.rawSkills || ['TypeScript', 'Node.js', 'React', 'MongoDB', 'Docker', 'AWS'],
+        soft: ['Problem Solving', 'Cross-functional Collaboration', 'Agile Leadership'],
+        tools: ['Git', 'Postman', 'VS Code', 'Jira'],
+      },
+      experience: [
+        {
+          company: 'Tech Solutions Inc.',
+          position: `Senior ${promptData.targetRole}`,
+          location: 'Remote',
+          startDate: '2022-01',
+          endDate: 'Present',
+          current: true,
+          bullets: [
+            'Architected distributed microservices handling 2M+ requests daily with 99.98% uptime.',
+            'Mentored junior engineers and instituted code review standards reducing production incidents by 34%.',
+            'Implemented automated CI/CD deployment pipelines reducing deployment cycle time by 45%.',
+          ],
+        },
+      ],
+      education: [
+        {
+          institution: 'State University',
+          degree: 'Bachelor of Science',
+          fieldOfStudy: 'Computer Science',
+          startDate: '2017',
+          endDate: '2021',
+          gpa: '3.8/4.0',
+        },
+      ],
+      projects: [
+        {
+          name: 'Cloud Infrastructure Optimizer',
+          description: 'Automated resource right-sizing engine analyzing metrics to eliminate idle cloud compute spend.',
+          technologies: ['Node.js', 'TypeScript', 'AWS CloudWatch'],
+        },
+      ],
+      certifications: [
+        {
+          name: 'AWS Certified Solutions Architect',
+          issuer: 'Amazon Web Services',
+          issueDate: '2023',
+        },
+      ],
+      achievements: [
+        'Awarded Developer of the Year 2023 across an engineering department of 120+ contributors.',
+      ],
+    };
   }
 }

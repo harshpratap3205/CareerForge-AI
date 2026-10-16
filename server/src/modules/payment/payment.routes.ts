@@ -13,6 +13,7 @@ router.post(
 router.use(express.json());
 
 router.post('/create-checkout-session', authenticate, PaymentController.createCheckoutSession);
+router.post('/verify-session', authenticate, PaymentController.verifySession);
 router.post('/mock-confirm', authenticate, PaymentController.mockConfirm);
 
 export const paymentRoutes = router;

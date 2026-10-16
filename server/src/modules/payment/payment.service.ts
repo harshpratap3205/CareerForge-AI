@@ -132,6 +132,7 @@ export class PaymentService {
       return null;
     }
 
+    console.log(`[Payment Workflow] Step 1/4: Recording payment ($${params.amount}) for Booking #${booking._id}...`);
     const payment = await Payment.create({
       bookingId: booking._id,
       userId: booking.userId,
@@ -142,12 +143,14 @@ export class PaymentService {
       rawWebhookData: params.rawWebhookData,
     });
 
+    console.log(`[Payment Workflow] Step 2/4: Transitioning Booking #${booking._id} status to PAID`);
     await BookingService.updateStatus(booking._id.toString(), 'PAID', {
       paymentIntentId: params.paymentIntentId,
     });
 
     const consultant: any = booking.consultantId;
 
+    console.log(`[Payment Workflow] Step 3/4: Triggering Google Calendar event creation...`);
     const calendarResult = await NotificationService.createGoogleCalendarEvent({
       userName: booking.name,
       userEmail: booking.email,
@@ -157,6 +160,7 @@ export class PaymentService {
       agenda: booking.meetingAgenda,
     });
 
+    console.log(`[Payment Workflow] Step 4/4: Transitioning Booking #${booking._id} to CONFIRMED with Meeting Link: ${calendarResult?.meetingUrl}`);
     await BookingService.updateStatus(booking._id.toString(), 'CONFIRMED', {
       calendarEventId: calendarResult?.eventId,
       meetingLink: calendarResult?.meetingUrl,
@@ -172,7 +176,35 @@ export class PaymentService {
       bookingId: booking._id.toString(),
     });
 
+    console.log(`[Payment Workflow] Complete: Booking #${booking._id} is CONFIRMED, calendar synchronized, and dashboard cache invalidated.`);
     return { status: 'confirmed', payment };
+  }
+
+  static async verifyCheckoutSession(sessionId: string) {
+    if (!stripe) {
+      throw new Error('Stripe is not configured on this server');
+    }
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (session.payment_status === 'paid') {
+      const bookingId = session.metadata?.bookingId || (session.client_reference_id as string);
+      if (!bookingId) {
+        throw new Error('No booking ID found in checkout session');
+      }
+
+      const result = await this.confirmBookingPayment({
+        stripeSessionId: session.id,
+        paymentIntentId: (session.payment_intent as string) || session.id,
+        bookingId,
+        userId: session.metadata?.userId,
+        amount: (session.amount_total || 0) / 100,
+        rawWebhookData: { verifiedViaApi: true, session },
+      });
+
+      return { verified: true, paymentStatus: session.payment_status, result };
+    }
+
+    return { verified: false, paymentStatus: session.payment_status };
   }
 
   static async mockConfirm(bookingId: string, userId: string) {

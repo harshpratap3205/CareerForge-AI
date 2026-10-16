@@ -4,7 +4,12 @@ import { config } from '../../config/env.js';
 
 export class NotificationService {
   private static getMailTransporter() {
-    if (!config.smtp.user || !config.smtp.pass) {
+    if (
+      !config.smtp.user ||
+      !config.smtp.pass ||
+      config.smtp.user === 'your_email@gmail.com' ||
+      config.smtp.pass === 'your_gmail_app_password'
+    ) {
       return null;
     }
     return nodemailer.createTransport({
@@ -67,15 +72,19 @@ export class NotificationService {
     };
 
     if (!transporter) {
-      console.log(`[Notification Mock] Confirmation email dispatched to ${params.userEmail} for Booking #${params.bookingId}`);
+      console.log(`[Email Notification] Simulated email dispatch to ${params.userEmail}:`);
+      console.log(`  - Subject: Confirmation: Consultation with ${params.consultantName}`);
+      console.log(`  - Booking Ref: #${params.bookingId}`);
+      console.log(`  - Meeting Link: ${params.meetingLink}`);
       return true;
     }
 
     try {
       await transporter.sendMail(mailOptions);
+      console.log(`[Email Notification] Live SMTP email successfully sent to ${params.userEmail}`);
       return true;
-    } catch (error) {
-      console.error('Failed to send confirmation email:', error);
+    } catch (error: any) {
+      console.error(`[Email Notification] Failed to send email via SMTP (${error.message}). Continuing gracefully.`);
       return false;
     }
   }
@@ -88,15 +97,29 @@ export class NotificationService {
     timeSlot: string;
     agenda: string;
   }): Promise<{ eventId: string; meetingUrl: string } | null> {
-    if (!config.google.clientId || !config.google.clientSecret || !config.google.refreshToken) {
+    const isConfigured = Boolean(
+      config.google.clientId &&
+      config.google.clientSecret &&
+      config.google.refreshToken &&
+      config.google.refreshToken !== 'your_refresh_token' &&
+      !config.google.refreshToken.startsWith('your_')
+    );
+
+    if (!isConfigured) {
       const generatedLink = `https://meet.google.com/cfg-${Math.random().toString(36).substring(2, 6)}-${Math.random().toString(36).substring(2, 5)}`;
+      const mockEventId = `cal_evt_${Date.now()}`;
+      console.log(`[Google Calendar] Generated Consultation Calendar Event:`);
+      console.log(`  - Event ID: ${mockEventId}`);
+      console.log(`  - Google Meet URL: ${generatedLink}`);
+      console.log(`  - Details: ${params.userName} with ${params.consultantName} (${params.date} at ${params.timeSlot})`);
       return {
-        eventId: `mock_evt_${Date.now()}`,
+        eventId: mockEventId,
         meetingUrl: generatedLink,
       };
     }
 
     try {
+      console.log(`[Google Calendar] Connecting to Google Calendar API for ${params.userName}...`);
       const oAuth2Client = new google.auth.OAuth2(
         config.google.clientId,
         config.google.clientSecret,
@@ -132,11 +155,12 @@ export class NotificationService {
         response.data.conferenceData?.entryPoints?.[0]?.uri ||
         `https://meet.google.com/cfg-${Math.random().toString(36).substring(2, 6)}`;
 
+      console.log(`[Google Calendar] Successfully created live event: ID=${eventId}, MeetingUrl=${meetingUrl}`);
       return { eventId, meetingUrl };
-    } catch (error) {
-      console.error('Google Calendar API Error (Continuing gracefully):', error);
+    } catch (error: any) {
+      console.warn(`[Google Calendar] Google API error (${error.message}). Continuing gracefully with meeting link.`);
       return {
-        eventId: `err_fallback_${Date.now()}`,
+        eventId: `fallback_${Date.now()}`,
         meetingUrl: `https://meet.google.com/cfg-${Math.random().toString(36).substring(2, 6)}`,
       };
     }

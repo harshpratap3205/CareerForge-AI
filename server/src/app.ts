@@ -14,6 +14,7 @@ import { userRoutes } from './modules/user/user.routes.js';
 import { chatRoutes } from './modules/chat/chat.routes.js';
 import { resumeRoutes } from './modules/resume/resume.routes.js';
 import { bookingRoutes } from './modules/booking/booking.routes.js';
+import { PaymentController } from './modules/payment/payment.controller.js';
 import { paymentRoutes } from './modules/payment/payment.routes.js';
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes.js';
 
@@ -28,9 +29,21 @@ app.use(
 );
 
 app.use(cookieParser());
-app.use('/api/payments/webhook', paymentRoutes);
 
-app.use(express.json());
+// Stripe Webhook MUST receive raw buffer before express.json()
+app.post(
+  '/api/payments/webhook',
+  express.raw({ type: 'application/json' }),
+  PaymentController.handleWebhook
+);
+
+app.use(
+  express.json({
+    verify: (req: any, _res, buf) => {
+      req.rawBody = buf;
+    },
+  })
+);
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 app.use(globalLimiter);

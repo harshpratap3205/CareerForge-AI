@@ -25,6 +25,9 @@ function SuccessContent() {
       try {
         if (sessionId && sessionId.startsWith('mock_')) {
           await api.post('/payments/mock-confirm', { bookingId });
+        } else if (sessionId) {
+          // Direct backend verification with Stripe API in case webhook is delayed or testing locally
+          await api.post('/payments/verify-session', { sessionId }).catch(console.warn);
         }
 
         const res = await api.get('/bookings', { params: { limit: 10 } });
@@ -66,6 +69,16 @@ function SuccessContent() {
             </div>
             {booking && (
               <>
+                <div className="flex justify-between border-b border-gray-200 pb-2">
+                  <span className="font-semibold text-gray-500">Status:</span>
+                  <span className={`font-bold px-2 py-0.5 rounded text-[11px] ${
+                    booking.status === 'CONFIRMED' || booking.status === 'PAID'
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {booking.status}
+                  </span>
+                </div>
                 <div className="flex justify-between border-b border-gray-200 pb-2">
                   <span className="font-semibold text-gray-500">Consultant:</span>
                   <span className="font-medium text-gray-900">{booking.consultantId?.name}</span>

@@ -17,6 +17,9 @@ export const config = {
   gemini: {
     apiKey: process.env.GEMINI_API_KEY || '',
   },
+  groq: {
+    apiKey: process.env.GROQ_API_KEY || '',
+  },
   stripe: {
     secretKey: process.env.STRIPE_SECRET_KEY || '',
     webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',

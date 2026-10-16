@@ -24,8 +24,24 @@ export class PaymentController {
         return;
       }
 
-      const result = await PaymentService.handleWebhook(req.body, signature);
+      const rawBody = (req as any).rawBody || req.body;
+      const result = await PaymentService.handleWebhook(rawBody, signature);
       res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async verifySession(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { sessionId } = req.body;
+      if (!sessionId) {
+        res.status(400).json({ success: false, message: 'sessionId is required' });
+        return;
+      }
+
+      const result = await PaymentService.verifyCheckoutSession(sessionId);
+      res.status(200).json({ success: true, data: result });
     } catch (error) {
       next(error);
     }

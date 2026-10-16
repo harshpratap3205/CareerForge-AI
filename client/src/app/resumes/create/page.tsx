@@ -7,6 +7,13 @@ import { api } from '../../../lib/api';
 import { ArrowLeft, FileText } from 'lucide-react';
 import Link from 'next/link';
 
+const AVAILABLE_MODELS = [
+  { id: 'openai/gpt-oss-120b', name: 'Groq GPT-OSS 120B (Ultra Fast, Recommended)' },
+  { id: 'qwen/qwen3.8-27b', name: 'Groq Qwen 27B (Fast & Concise)' },
+  { id: 'gemini-flash-latest', name: 'Google Gemini Flash' },
+  { id: 'gemini-3.5-flash', name: 'Google Gemini 3.5 Flash' },
+];
+
 export default function CreateResumePage() {
   const router = useRouter();
   const [targetRole, setTargetRole] = useState('Senior Full-Stack Engineer');
@@ -14,6 +21,7 @@ export default function CreateResumePage() {
   const [rawSkills, setRawSkills] = useState('TypeScript, React, Node.js, Next.js, MongoDB, Redis, Docker, AWS');
   const [userBio, setUserBio] = useState('Full stack engineer specialized in high-performance cloud applications and microservices.');
   const [templateId, setTemplateId] = useState<'modern' | 'ats-classic'>('modern');
+  const [selectedModel, setSelectedModel] = useState('openai/gpt-oss-120b');
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
 
@@ -28,6 +36,7 @@ export default function CreateResumePage() {
         yearsOfExperience: Number(yearsOfExperience),
         rawSkills: rawSkills.split(',').map((s) => s.trim()).filter(Boolean),
         userBio,
+        model: selectedModel,
       });
 
       const structuredContent = aiRes.data.data;
@@ -141,13 +150,32 @@ export default function CreateResumePage() {
               />
             </div>
 
-            <button
-              type="submit"
-              disabled={generating}
-              className="w-full py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white font-medium rounded text-xs transition disabled:opacity-50"
-            >
-              {generating ? 'Generating Resume Content...' : 'Generate Resume'}
-            </button>
+            <div className="pt-2 border-t border-neutral-200 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <label className="text-xs font-medium text-neutral-700 whitespace-nowrap">
+                  AI Generator Engine:
+                </label>
+                <select
+                  value={selectedModel}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  className="w-full max-w-xs px-2.5 py-1.5 border border-neutral-300 rounded text-xs text-neutral-900 bg-white focus:outline-none focus:border-neutral-900"
+                >
+                  {AVAILABLE_MODELS.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="submit"
+                disabled={generating}
+                className="w-full py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white font-medium rounded text-xs transition disabled:opacity-50"
+              >
+                {generating ? 'Generating Resume Content...' : 'Generate Resume with AI'}
+              </button>
+            </div>
           </form>
         </div>
       </div>

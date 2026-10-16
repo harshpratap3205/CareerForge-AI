@@ -54,14 +54,18 @@ export default function ResumePreviewPage() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-gray-200 print:border-none print:shadow-none print:p-0">
+      <div className={`bg-white p-8 rounded-xl shadow-sm border border-neutral-200 print:border-none print:shadow-none print:p-0 transition-all ${
+        resume.templateId === 'ats-classic'
+          ? 'font-serif text-black max-w-3xl mx-auto'
+          : 'font-sans text-neutral-800 max-w-4xl mx-auto'
+      }`}>
         {showHtml ? (
-          <pre className="p-4 bg-gray-900 text-green-400 text-xs font-mono rounded-lg overflow-x-auto whitespace-pre-wrap">
+          <pre className="p-4 bg-neutral-900 text-emerald-400 text-xs font-mono rounded overflow-x-auto whitespace-pre-wrap">
             {resume.tiptapHtml}
           </pre>
         ) : (
           <div
-            className="prose max-w-none"
+            className={`prose max-w-none ${resume.templateId === 'ats-classic' ? 'prose-headings:font-serif prose-headings:text-black' : ''}`}
             dangerouslySetInnerHTML={{ __html: resume.tiptapHtml }}
           />
         )}

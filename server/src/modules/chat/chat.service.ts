@@ -1,15 +1,20 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { Groq } from 'groq-sdk';
 import { config } from '../../config/env.js';
 import { ChatSession, ChatMessage, IChatMessage } from './chat.model.js';
 import mongoose from 'mongoose';
 
-const FALLBACK_MODELS = ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini-3.8-flash'];
+const GROQ_MODELS = ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b'];
+const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini-3.8-flash'];
 
 export class ChatService {
+  private static getGroqClient(): Groq | null {
+    if (!config.groq.apiKey) return null;
+    return new Groq({ apiKey: config.groq.apiKey });
+  }
+
   private static getGeminiModel(modelName?: string) {
-    if (!config.gemini.apiKey) {
-      return null;
-    }
+    if (!config.gemini.apiKey) return null;
     const genAI = new GoogleGenerativeAI(config.gemini.apiKey);
     const selectedModel = modelName || 'gemini-flash-latest';
     return genAI.getGenerativeModel({
@@ -17,6 +22,16 @@ export class ChatService {
       systemInstruction:
         'You are an executive career consultant, resume strategist, and technical interview coach. Provide structured, actionable, candid, and high-impact career guidance.',
     });
+  }
+
+  private static isGroqModel(modelName: string): boolean {
+    return (
+      modelName.startsWith('openai/') ||
+      modelName.startsWith('qwen/') ||
+      modelName.startsWith('meta-llama/') ||
+      modelName.includes('llama') ||
+      modelName.includes('oss')
+    );
   }
 
   private static sanitizeHistory(messages: Array<{ role: string; content: string }>) {
@@ -28,7 +43,7 @@ export class ChatService {
 
       if (
         msg.content.includes('temporarily experiencing high demand') ||
-        msg.content.includes('Error connecting to Gemini API') ||
+        msg.content.includes('Error connecting to') ||
         msg.content.includes('[Development Mode]')
       ) {
         continue;
@@ -128,29 +143,60 @@ export class ChatService {
 
     let botReply = '';
     const modelsToTry = [
-      modelName || 'gemini-flash-latest',
-      ...FALLBACK_MODELS,
+      modelName || 'openai/gpt-oss-120b',
+      ...GROQ_MODELS,
+      ...GEMINI_MODELS,
     ].filter((m, idx, arr) => arr.indexOf(m) === idx);
 
     let succeeded = false;
-    for (const candidate of modelsToTry) {
-      const model = this.getGeminiModel(candidate);
-      if (!model) break;
 
+    for (const candidate of modelsToTry) {
       try {
-        const chat = model.startChat({ history });
-        const result = await chat.sendMessage(userMessage);
-        botReply = result.response.text();
-        succeeded = true;
-        break;
+        if (this.isGroqModel(candidate)) {
+          const groq = this.getGroqClient();
+          if (!groq) continue;
+
+          console.log(`[Chat] Querying Groq with model: ${candidate}`);
+          const groqMessages = [
+            {
+              role: 'system',
+              content:
+                'You are an executive career consultant, resume strategist, and technical interview coach. Provide structured, actionable, and candid guidance.',
+            },
+            ...previousMessages.map((m) => ({
+              role: m.role === 'user' ? 'user' : 'assistant',
+              content: m.content,
+            })),
+            { role: 'user', content: userMessage },
+          ];
+
+          const comp = await groq.chat.completions.create({
+            model: candidate,
+            messages: groqMessages as any,
+          });
+
+          botReply = comp.choices[0]?.message?.content || '';
+          succeeded = true;
+          break;
+        } else {
+          const gemini = this.getGeminiModel(candidate);
+          if (!gemini) continue;
+
+          console.log(`[Chat] Querying Gemini with model: ${candidate}`);
+          const chat = gemini.startChat({ history });
+          const res = await chat.sendMessage(userMessage);
+          botReply = res.response.text();
+          succeeded = true;
+          break;
+        }
       } catch (err: any) {
         console.warn(`[Chat] Candidate ${candidate} failed: ${err.message}. Retrying fallback...`);
       }
     }
 
     if (!succeeded) {
-      if (!config.gemini.apiKey) {
-        botReply = `[Development Mode] Set GEMINI_API_KEY in server/.env to enable live AI responses. Received: "${userMessage}".`;
+      if (!config.groq.apiKey && !config.gemini.apiKey) {
+        botReply = `[Development Mode] Set GROQ_API_KEY or GEMINI_API_KEY in server/.env. Query: "${userMessage}".`;
       } else {
         botReply =
           'I apologize, but the advisory service is currently experiencing high demand. Please try sending your message again in a moment.';
@@ -209,30 +255,68 @@ export class ChatService {
 
     let fullReply = '';
     const modelsToTry = [
-      modelName || 'gemini-flash-latest',
-      ...FALLBACK_MODELS,
+      modelName || 'openai/gpt-oss-120b',
+      ...GROQ_MODELS,
+      ...GEMINI_MODELS,
     ].filter((m, idx, arr) => arr.indexOf(m) === idx);
 
     let succeeded = false;
 
     for (const candidate of modelsToTry) {
-      const model = this.getGeminiModel(candidate);
-      if (!model) break;
-
       try {
-        console.log(`[Chat] Streaming session ${sessionId} with model: ${candidate}`);
-        const chat = model.startChat({ history });
-        const resultStream = await chat.sendMessageStream(userMessage);
+        if (this.isGroqModel(candidate)) {
+          const groq = this.getGroqClient();
+          if (!groq) continue;
 
-        for await (const chunk of resultStream.stream) {
-          const text = chunk.text();
-          fullReply += text;
-          onChunk(text);
+          console.log(`[Chat] Streaming session ${sessionId} with Groq model: ${candidate}`);
+          const groqMessages = [
+            {
+              role: 'system',
+              content:
+                'You are an executive career consultant, resume strategist, and technical interview coach. Provide structured, actionable, and candid guidance.',
+            },
+            ...previousMessages.map((m) => ({
+              role: m.role === 'user' ? 'user' : 'assistant',
+              content: m.content,
+            })),
+            { role: 'user', content: userMessage },
+          ];
+
+          const stream = await groq.chat.completions.create({
+            model: candidate,
+            messages: groqMessages as any,
+            stream: true,
+          });
+
+          for await (const chunk of stream) {
+            const text = chunk.choices[0]?.delta?.content || '';
+            if (text) {
+              fullReply += text;
+              onChunk(text);
+            }
+          }
+
+          succeeded = true;
+          console.log(`[Chat] Groq stream completed successfully (${fullReply.length} chars)`);
+          break;
+        } else {
+          const gemini = this.getGeminiModel(candidate);
+          if (!gemini) continue;
+
+          console.log(`[Chat] Streaming session ${sessionId} with Gemini model: ${candidate}`);
+          const chat = gemini.startChat({ history });
+          const resultStream = await chat.sendMessageStream(userMessage);
+
+          for await (const chunk of resultStream.stream) {
+            const text = chunk.text();
+            fullReply += text;
+            onChunk(text);
+          }
+
+          succeeded = true;
+          console.log(`[Chat] Gemini stream completed successfully (${fullReply.length} chars)`);
+          break;
         }
-
-        succeeded = true;
-        console.log(`[Chat] Stream completed successfully (${fullReply.length} chars)`);
-        break;
       } catch (err: any) {
         console.warn(`[Chat] Candidate ${candidate} failed: ${err.message}`);
         if (fullReply.length > 0) {
@@ -243,8 +327,8 @@ export class ChatService {
     }
 
     if (!succeeded) {
-      if (!config.gemini.apiKey) {
-        const demoReply = `[Development Mode] Set GEMINI_API_KEY in server/.env to stream live responses. Query: "${userMessage}".`;
+      if (!config.groq.apiKey && !config.gemini.apiKey) {
+        const demoReply = `[Development Mode] Set GROQ_API_KEY or GEMINI_API_KEY in server/.env to stream live responses. Query: "${userMessage}".`;
         for (const word of demoReply.split(' ')) {
           onChunk(word + ' ');
           fullReply += word + ' ';

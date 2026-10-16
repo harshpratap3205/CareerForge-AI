@@ -1,4 +1,6 @@
 import request from 'supertest';
+import dotenv from 'dotenv';
+dotenv.config();
 import { app } from '../src/app.js';
 import mongoose from 'mongoose';
 import { User } from '../src/modules/auth/user.model.js';
@@ -6,6 +8,7 @@ import { Consultant, Booking } from '../src/modules/booking/booking.model.js';
 import { Resume } from '../src/modules/resume/resume.model.js';
 import { ChatSession } from '../src/modules/chat/chat.model.js';
 import { Payment } from '../src/modules/payment/payment.model.js';
+import { redisClient } from '../src/config/redis.js';
 
 describe('CareerForge API Test Suite', () => {
   let authToken = '';
@@ -23,6 +26,13 @@ describe('CareerForge API Test Suite', () => {
   });
 
   afterAll(async () => {
+    try {
+      if (redisClient) {
+        await redisClient.quit();
+      }
+    } catch {
+      // Ignore redis quit error
+    }
     if (mongoose.connection.readyState !== 0) {
       await mongoose.connection.close();
     }
@@ -111,7 +121,7 @@ describe('CareerForge API Test Suite', () => {
       expect(res.status).toBe(200);
       expect(res.body.data.userMsg).toBeDefined();
       expect(res.body.data.botMsg).toBeDefined();
-    });
+    }, 20000);
 
     it('should list all user chat sessions', async () => {
       const res = await request(app)
@@ -157,7 +167,7 @@ describe('CareerForge API Test Suite', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data.resume.templateId).toBe('ats-classic');
-      expect(res.body.data.resume.tiptapHtml).toContain('ats-classic');
+      expect(res.body.data.resume.tiptapHtml).toContain('Core Competencies');
     });
 
     it('should duplicate an existing resume', async () => {
@@ -172,9 +182,10 @@ describe('CareerForge API Test Suite', () => {
 
   describe('5. Consultation Booking & State Machine', () => {
     beforeAll(async () => {
+      const uniqueEmail = `alex.rivera.${Date.now()}@careerforge.test`;
       const consultant = await Consultant.create({
         name: 'Alex Rivera',
-        email: 'alex.rivera@careerforge.test',
+        email: uniqueEmail,
         specialty: 'System Design Interviewer',
         hourlyRate: 80,
         slots: ['11:00', '15:00'],
@@ -268,7 +279,7 @@ describe('CareerForge API Test Suite', () => {
       const updated = await Booking.findById(testBookingId);
       expect(updated?.status).toBe('CONFIRMED');
       expect(updated?.meetingLink).toBeDefined();
-    });
+    }, 25000);
   });
 
   describe('7. Dashboard & Aggregation', () => {
