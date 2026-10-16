@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: careerforge-mongodb
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_DATABASE: careerforge
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: careerforge-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: careerforge-server
+    restart: unless-stopped
+    ports:
+      - '5000:5000'
+    environment:
+      PORT: 5000
+      NODE_ENV: production
+      MONGODB_URI: mongodb://mongodb:27017/careerforge
+      REDIS_URL: redis://redis:6379
+      CLIENT_URL: http://localhost:3000
+      JWT_ACCESS_SECRET: access_secret_dev_key_careerforge_123
+      JWT_REFRESH_SECRET: refresh_secret_dev_key_careerforge_456
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+    depends_on:
+      - mongodb
+      - redis
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: careerforge-client
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:5000/api
+    depends_on:
+      - server
+
+volumes:
+  mongo_data:
+  redis_data:
