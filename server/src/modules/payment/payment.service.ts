@@ -133,15 +133,30 @@ export class PaymentService {
     }
 
     console.log(`[Payment Workflow] Step 1/4: Recording payment ($${params.amount}) for Booking #${booking._id}...`);
-    const payment = await Payment.create({
-      bookingId: booking._id,
-      userId: booking.userId,
-      stripeSessionId: params.stripeSessionId,
-      paymentIntentId: params.paymentIntentId,
-      amount: params.amount || booking.amount,
-      status: 'succeeded',
-      rawWebhookData: params.rawWebhookData,
-    });
+    let payment: any;
+    try {
+      payment = await Payment.create({
+        bookingId: booking._id,
+        userId: booking.userId,
+        stripeSessionId: params.stripeSessionId,
+        paymentIntentId: params.paymentIntentId,
+        amount: params.amount || booking.amount,
+        status: 'succeeded',
+        rawWebhookData: params.rawWebhookData,
+      });
+    } catch (err: any) {
+      if (err.code === 11000 || (err.name === 'MongoServerError' && err.message?.includes('duplicate key'))) {
+        console.log(`[Payment Workflow] Concurrent payment insertion detected for session ${params.stripeSessionId}. Retrieving existing payment.`);
+        const existing = await Payment.findOne({
+          $or: [
+            { stripeSessionId: params.stripeSessionId },
+            { paymentIntentId: params.paymentIntentId },
+          ],
+        });
+        return { status: 'already_processed', payment: existing };
+      }
+      throw err;
+    }
 
     console.log(`[Payment Workflow] Step 2/4: Transitioning Booking #${booking._id} status to PAID`);
     await BookingService.updateStatus(booking._id.toString(), 'PAID', {

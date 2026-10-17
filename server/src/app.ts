@@ -23,7 +23,19 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
-    origin: [config.clientUrl, 'http://localhost:3000', 'https://*.vercel.app'],
+    origin: (origin, callback) => {
+      // Allow non-browser requests (Postman, curl, webhooks)
+      if (!origin) return callback(null, true);
+      if (
+        origin === config.clientUrl ||
+        origin.includes('localhost') ||
+        origin.endsWith('.vercel.app') ||
+        /^https:\/\/.*\.vercel\.app$/.test(origin)
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
   })
 );
