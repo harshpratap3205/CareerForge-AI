@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { connectDB } from '../config/db.js';
 import { User } from '../modules/auth/user.model.js';
 import { Consultant } from '../modules/booking/booking.model.js';
-import { Resume } from '../modules/resume/resume.model.js';
+import { Resume, IResume } from '../modules/resume/resume.model.js';
 import { ResumeTemplateEngine } from '../modules/resume/resume.templates.js';
 
 async function seedAll() {
@@ -150,50 +150,63 @@ async function seedAll() {
     // Seed sample resume for Alex Johnson if none exists
     let candidateResume = await Resume.findOne({ userId: candidateUser._id });
     if (!candidateResume) {
-      const sampleData = {
+      const sampleData: Partial<IResume> = {
         personalInfo: {
           fullName: 'Alex Johnson',
           email: 'candidate@careerforge.ai',
           phone: '+1 (555) 234-5678',
           location: 'San Francisco, CA',
-          portfolioUrl: 'https://alexjohnson.dev',
-          linkedinUrl: 'https://linkedin.com/in/alexjohnson',
-          githubUrl: 'https://github.com/alexjohnson',
+          portfolio: 'https://alexjohnson.dev',
+          linkedin: 'https://linkedin.com/in/alexjohnson',
+          github: 'https://github.com/alexjohnson',
         },
         summary: 'Senior Full-Stack Engineer with 6+ years of experience building resilient microservices, responsive web apps, and automated CI/CD pipelines.',
         experience: [
           {
             company: 'TechFlow Solutions',
-            role: 'Senior Full-Stack Engineer',
+            position: 'Senior Full-Stack Engineer',
             location: 'San Francisco, CA',
             startDate: '2022',
             endDate: 'Present',
-            description: 'Architected distributed event-driven microservices handling 2M+ daily requests using Node.js and Redis. Spearheaded migration of legacy frontend to Next.js 14, improving Core Web Vitals by 42%.',
+            current: true,
+            bullets: [
+              'Architected distributed event-driven microservices handling 2M+ daily requests using Node.js and Redis.',
+              'Spearheaded migration of legacy frontend to Next.js 14, improving Core Web Vitals by 42%.',
+            ],
           },
           {
             company: 'Apex Cloud Systems',
-            role: 'Software Engineer',
+            position: 'Software Engineer',
             location: 'Austin, TX',
             startDate: '2019',
             endDate: '2022',
-            description: 'Engineered REST APIs with Express and MongoDB. Designed real-time collaboration canvas using WebSockets.',
+            current: false,
+            bullets: [
+              'Engineered REST APIs with Express and MongoDB.',
+              'Designed real-time collaboration canvas using WebSockets.',
+            ],
           },
         ],
         education: [
           {
             institution: 'University of California, Berkeley',
-            degree: 'B.S. in Computer Science',
-            fieldOfStudy: 'Software Engineering',
-            graduationYear: '2019',
+            degree: 'B.S.',
+            fieldOfStudy: 'Computer Science',
+            startDate: '2015',
+            endDate: '2019',
           },
         ],
-        skills: ['TypeScript', 'JavaScript', 'React', 'Next.js', 'Node.js', 'Express', 'MongoDB', 'Redis', 'Docker', 'PostgreSQL'],
+        skills: {
+          technical: ['TypeScript', 'JavaScript', 'React', 'Next.js', 'Node.js', 'Express', 'MongoDB', 'Redis', 'Docker', 'PostgreSQL'],
+          soft: ['System Design', 'Technical Leadership', 'Cross-functional Collaboration'],
+          tools: ['Docker', 'Git', 'AWS', 'Linux'],
+        },
         projects: [
           {
             name: 'CloudSync Orchestrator',
             description: 'Real-time multi-cloud deployment visualizer built with React, Go, and Redis.',
             technologies: ['React', 'Go', 'Redis', 'Docker'],
-            url: 'https://github.com/alexjohnson/cloudsync',
+            link: 'https://github.com/alexjohnson/cloudsync',
           },
         ],
         certifications: [
