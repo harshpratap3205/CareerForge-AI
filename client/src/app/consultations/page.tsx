@@ -16,6 +16,7 @@ import {
   XCircle,
   ArrowRight,
   User,
+  CreditCard,
 } from 'lucide-react';
 
 interface BookingItem {
@@ -72,6 +73,25 @@ export default function ConsultationsListPage() {
     e.preventDefault();
     setPage(1);
     fetchBookings();
+  };
+
+  const [payingBookingId, setPayingBookingId] = useState<string | null>(null);
+
+  const handleContinuePayment = async (bookingId: string) => {
+    setPayingBookingId(bookingId);
+    try {
+      const checkoutRes = await api.post('/payments/create-checkout-session', {
+        bookingId,
+      });
+      const { url } = checkoutRes.data.data;
+      if (url) {
+        window.location.href = url;
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to initialize payment session.');
+    } finally {
+      setPayingBookingId(null);
+    }
   };
 
   const handleCancel = async (id: string) => {
@@ -256,13 +276,17 @@ export default function ConsultationsListPage() {
                             <Video className="w-3.5 h-3.5" /> Join Meet
                           </a>
                         )}
-                        {!isConsultant && b.status === 'PENDING_PAYMENT' && (
-                          <Link
-                            href={`/consultations/success?booking_id=${b._id}`}
-                            className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 hover:bg-amber-100 px-2.5 py-1.5 rounded-lg font-semibold transition"
+                        {b.status === 'PENDING_PAYMENT' && (
+                          <button
+                            type="button"
+                            onClick={() => handleContinuePayment(b._id)}
+                            disabled={payingBookingId === b._id}
+                            className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer disabled:opacity-60"
+                            title="Continue to Stripe Checkout"
                           >
-                            Complete Payment
-                          </Link>
+                            <CreditCard className="w-3.5 h-3.5" />
+                            {payingBookingId === b._id ? 'Opening Stripe...' : 'Pay Now'}
+                          </button>
                         )}
                         {['PENDING_PAYMENT', 'CONFIRMED'].includes(b.status) && (
                           <button

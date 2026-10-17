@@ -20,6 +20,12 @@ export class BookingService {
     }
 
     let sarah = await Consultant.findOne({ email: 'sarah.jenkins@careerforge.ai' });
+    const sarahSlots = [
+      '10:00 AM - 11:00 AM',
+      '01:00 PM - 02:00 PM',
+      '03:00 PM - 04:00 PM',
+      '04:00 PM - 05:00 PM',
+    ];
     if (!sarah) {
       await Consultant.create({
         userId: sarahUser._id,
@@ -29,11 +35,12 @@ export class BookingService {
         hourlyRate: 75,
         bio: 'Former Google Staff Engineer with 10+ years interviewing candidates.',
         availableDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-        slots: ['10:00', '13:00', '15:00', '17:00'],
+        slots: sarahSlots,
         isActive: true,
       });
-    } else if (!sarah.userId) {
+    } else {
       sarah.userId = sarahUser._id;
+      sarah.slots = sarahSlots;
       await sarah.save();
     }
 
@@ -48,6 +55,12 @@ export class BookingService {
     }
 
     let david = await Consultant.findOne({ email: 'david.chen@careerforge.ai' });
+    const davidSlots = [
+      '09:00 AM - 10:00 AM',
+      '11:00 AM - 12:00 PM',
+      '02:00 PM - 03:00 PM',
+      '03:00 PM - 04:00 PM',
+    ];
     if (!david) {
       await Consultant.create({
         userId: davidUser._id,
@@ -57,11 +70,12 @@ export class BookingService {
         hourlyRate: 60,
         bio: 'Head of Talent at Silicon Valley venture studio. Placed 250+ senior engineers.',
         availableDays: ['Tuesday', 'Wednesday', 'Thursday', 'Saturday'],
-        slots: ['09:00', '11:00', '14:00', '16:00'],
+        slots: davidSlots,
         isActive: true,
       });
-    } else if (!david.userId) {
+    } else {
       david.userId = davidUser._id;
+      david.slots = davidSlots;
       await david.save();
     }
   }
@@ -73,6 +87,42 @@ export class BookingService {
 
   static async getConsultant(id: string) {
     return Consultant.findById(id);
+  }
+
+  static isSlotAvailable(requestedSlot: string, offeredSlots: string[]): boolean {
+    const cleanReq = String(requestedSlot || '').trim();
+    if (offeredSlots.includes(cleanReq)) return true;
+
+    const parseMinutes = (tStr: string): number | null => {
+      const isPM = /pm/i.test(tStr);
+      const isAM = /am/i.test(tStr);
+      const match = tStr.match(/(\d{1,2})(?::(\d{2}))?/);
+      if (!match) return null;
+      let hour = parseInt(match[1], 10);
+      const min = match[2] ? parseInt(match[2], 10) : 0;
+      if (isPM && hour < 12) hour += 12;
+      if (isAM && hour === 12) hour = 0;
+      return hour * 60 + min;
+    };
+
+    const reqPart = cleanReq.includes('-') ? cleanReq.split('-')[0].trim() : cleanReq.split('(')[0].trim();
+    const reqMin = parseMinutes(reqPart);
+    if (reqMin === null) return false;
+
+    for (const slot of offeredSlots) {
+      if (slot === cleanReq) return true;
+      if (slot.includes('-')) {
+        const [startStr, endStr] = slot.split('-');
+        const sMin = parseMinutes(startStr);
+        const eMin = parseMinutes(endStr);
+        if (sMin !== null && eMin !== null) {
+          if (reqMin >= sMin && reqMin < eMin) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
   static async createBooking(
@@ -105,7 +155,7 @@ export class BookingService {
       throw err;
     }
 
-    if (!consultant.slots.includes(data.timeSlot)) {
+    if (!this.isSlotAvailable(data.timeSlot, consultant.slots)) {
       const err: any = new Error('Requested time slot is not offered by this consultant');
       err.statusCode = 400;
       throw err;

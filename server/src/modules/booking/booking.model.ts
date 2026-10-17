@@ -52,7 +52,15 @@ const ConsultantSchema = new Schema<IConsultant>(
     avatarUrl: { type: String, default: '' },
     bio: { type: String, default: '' },
     availableDays: { type: [String], default: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] },
-    slots: { type: [String], default: ['09:00', '11:00', '14:00', '16:00'] },
+    slots: {
+      type: [String],
+      default: [
+        '10:00 AM - 11:00 AM',
+        '01:00 PM - 02:00 PM',
+        '03:00 PM - 04:00 PM',
+        '04:00 PM - 05:00 PM',
+      ],
+    },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }

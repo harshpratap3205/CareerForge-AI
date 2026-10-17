@@ -128,7 +128,25 @@ export class NotificationService {
       oAuth2Client.setCredentials({ refresh_token: config.google.refreshToken });
 
       const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
-      const startDateTime = new Date(`${params.date}T${params.timeSlot}:00Z`);
+
+      // Robustly parse start time from time slot formats (e.g. "03:00 PM - 04:00 PM", "15:00", "3 to 4 PM")
+      const slotStr = String(params.timeSlot || '').trim();
+      const startChunk = slotStr.includes('-') ? slotStr.split('-')[0].trim() : slotStr.split('to')[0].trim();
+      const isPM = /pm/i.test(startChunk) || /pm/i.test(slotStr);
+      const isAM = /am/i.test(startChunk) || (/am/i.test(slotStr) && !isPM);
+      const timeMatch = startChunk.match(/(\d{1,2})(?::(\d{2}))?/);
+
+      let hour = 10;
+      let minute = 0;
+      if (timeMatch) {
+        hour = parseInt(timeMatch[1], 10);
+        minute = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
+        if (isPM && hour < 12) hour += 12;
+        if (isAM && hour === 12) hour = 0;
+      }
+
+      const startDateTime = new Date(`${params.date}T00:00:00Z`);
+      startDateTime.setUTCHours(hour, minute, 0, 0);
       const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000);
 
       const response = await calendar.events.insert({

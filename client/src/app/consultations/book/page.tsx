@@ -241,12 +241,24 @@ export default function BookConsultationPage() {
               </div>
 
               <div ref={slotRef} id="field-slot">
-                <label className="block text-xs font-semibold text-neutral-700 uppercase mb-1">
-                  3. Select Slot
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(selectedConsultant?.slots || ['10:00', '14:00']).map((slot) => {
-                    const isSelected = timeSlot === slot;
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-neutral-700 uppercase">
+                    3. Select Consultation Slot
+                  </label>
+                  <span className="text-[11px] text-neutral-500">
+                    Flexible start times supported
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {(selectedConsultant?.slots || [
+                    '10:00 AM - 11:00 AM',
+                    '01:00 PM - 02:00 PM',
+                    '03:00 PM - 04:00 PM',
+                    '04:00 PM - 05:00 PM',
+                  ]).map((slot) => {
+                    const isSelected =
+                      timeSlot === slot ||
+                      (timeSlot && timeSlot.includes(slot.split('-')[0].trim().split(' ')[0]));
                     return (
                       <button
                         key={slot}
@@ -255,7 +267,7 @@ export default function BookConsultationPage() {
                           setTimeSlot(slot);
                           if (invalidField === 'slot') setInvalidField(null);
                         }}
-                        className={`py-2 px-3 text-xs font-semibold rounded-lg border transition ${
+                        className={`py-2 px-3 text-xs font-semibold rounded-lg border text-left transition ${
                           isSelected
                             ? 'border-neutral-900 bg-neutral-900 text-white shadow-xs'
                             : invalidField === 'slot'
@@ -263,11 +275,73 @@ export default function BookConsultationPage() {
                             : 'border-neutral-200 text-neutral-700 hover:bg-neutral-50'
                         }`}
                       >
-                        {slot}
+                        <div className="flex items-center justify-between">
+                          <span>{slot}</span>
+                          {slot.includes('03:00') && (
+                            <span
+                              className={`text-[10px] px-1.5 py-0.5 rounded font-normal ${
+                                isSelected ? 'bg-neutral-800 text-neutral-200' : 'bg-indigo-50 text-indigo-700'
+                              }`}
+                            >
+                              3 to 4 PM
+                            </span>
+                          )}
+                        </div>
                       </button>
                     );
                   })}
                 </div>
+
+                {timeSlot && timeSlot.includes('-') && (
+                  <div className="mt-3 p-3 bg-neutral-50 rounded-lg border border-neutral-200">
+                    <span className="text-[11px] font-semibold text-neutral-700 block mb-1.5">
+                      Preferred Session Start Time for Selected Slot:
+                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {(() => {
+                        const baseSlot = timeSlot.includes('(') ? timeSlot.split('(')[0].trim() : timeSlot;
+                        const [startPart, endPart] = baseSlot.split('-').map((s) => s.trim());
+                        const match = startPart.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+                        if (!match) return null;
+                        const hour = match[1];
+                        const ampm = match[3] || '';
+                        const standardStart = `${hour}:00 ${ampm}`.trim();
+                        const halfHourStart = `${hour}:30 ${ampm}`.trim();
+                        const fullStandard = `${standardStart} - ${endPart}`;
+                        const fullHalf = `${halfHourStart} - ${endPart}`;
+
+                        return (
+                          <>
+                            <button
+                              key="standard"
+                              type="button"
+                              onClick={() => setTimeSlot(fullStandard)}
+                              className={`px-3 py-1.5 text-xs rounded-md border transition cursor-pointer font-medium ${
+                                timeSlot === fullStandard || timeSlot === baseSlot
+                                  ? 'bg-neutral-900 text-white border-neutral-900 shadow-2xs'
+                                  : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-100'
+                              }`}
+                            >
+                              Start at {standardStart} (Full Hour)
+                            </button>
+                            <button
+                              key="half"
+                              type="button"
+                              onClick={() => setTimeSlot(fullHalf)}
+                              className={`px-3 py-1.5 text-xs rounded-md border transition cursor-pointer font-medium ${
+                                timeSlot === fullHalf
+                                  ? 'bg-neutral-900 text-white border-neutral-900 shadow-2xs'
+                                  : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-100'
+                              }`}
+                            >
+                              Start at {halfHourStart} (Half-hour Start)
+                            </button>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

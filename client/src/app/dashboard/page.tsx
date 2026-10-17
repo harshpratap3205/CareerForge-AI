@@ -39,7 +39,12 @@ export default function DashboardPage() {
   const [hourlyRate, setHourlyRate] = useState<number>(75);
   const [specialty, setSpecialty] = useState<string>('');
   const [bio, setBio] = useState<string>('');
-  const [slots, setSlots] = useState<string[]>(['09:00', '11:00', '14:00', '16:00']);
+  const [slots, setSlots] = useState<string[]>([
+    '10:00 AM - 11:00 AM',
+    '01:00 PM - 02:00 PM',
+    '03:00 PM - 04:00 PM',
+    '04:00 PM - 05:00 PM',
+  ]);
   const [availableDays, setAvailableDays] = useState<string[]>([
     'Monday',
     'Tuesday',
@@ -47,7 +52,8 @@ export default function DashboardPage() {
     'Thursday',
     'Friday',
   ]);
-  const [newSlotTime, setNewSlotTime] = useState<string>('');
+  const [slotStart, setSlotStart] = useState<string>('15:00');
+  const [slotEnd, setSlotEnd] = useState<string>('16:00');
   const [savingConsultant, setSavingConsultant] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -126,16 +132,25 @@ export default function DashboardPage() {
     }
   }, [user]);
 
+  const formatTime12h = (time24: string) => {
+    const [hStr, mStr] = time24.split(':');
+    let h = parseInt(hStr || '0', 10);
+    const m = mStr || '00';
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12;
+    h = h ? h : 12;
+    const hFormatted = h < 10 ? `0${h}` : `${h}`;
+    return `${hFormatted}:${m} ${ampm}`;
+  };
+
   const handleAddSlot = (slotToAdd?: string) => {
-    const slot = (slotToAdd || newSlotTime).trim();
-    if (!slot) return;
-    if (slots.includes(slot)) {
-      setNewSlotTime('');
-      return;
+    let slot = slotToAdd ? slotToAdd.trim() : '';
+    if (!slot && slotStart && slotEnd) {
+      slot = `${formatTime12h(slotStart)} - ${formatTime12h(slotEnd)}`;
     }
-    const updated = [...slots, slot].sort();
-    setSlots(updated);
-    setNewSlotTime('');
+    if (!slot) return;
+    if (slots.includes(slot)) return;
+    setSlots([...slots, slot]);
   };
 
   const handleRemoveSlot = (slotToRemove: string) => {
@@ -411,26 +426,41 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 pt-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 bg-neutral-50 p-1.5 rounded-lg border border-neutral-200">
+                    <span className="text-[11px] font-semibold text-neutral-600">From:</span>
                     <input
                       type="time"
-                      value={newSlotTime}
-                      onChange={(e) => setNewSlotTime(e.target.value)}
-                      className="px-3 py-1.5 border border-neutral-300 rounded-lg text-xs text-neutral-900 bg-white focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                      value={slotStart}
+                      onChange={(e) => setSlotStart(e.target.value)}
+                      className="px-2 py-1 border border-neutral-300 rounded text-xs text-neutral-900 bg-white focus:outline-none"
+                    />
+                    <span className="text-[11px] font-semibold text-neutral-600">To:</span>
+                    <input
+                      type="time"
+                      value={slotEnd}
+                      onChange={(e) => setSlotEnd(e.target.value)}
+                      className="px-2 py-1 border border-neutral-300 rounded text-xs text-neutral-900 bg-white focus:outline-none"
                     />
                     <button
                       type="button"
                       onClick={() => handleAddSlot()}
-                      disabled={!newSlotTime}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-semibold rounded-lg transition disabled:opacity-40 cursor-pointer border border-neutral-300"
+                      className="inline-flex items-center gap-1 px-3 py-1 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold rounded transition cursor-pointer shadow-2xs"
                     >
-                      <Plus className="w-3.5 h-3.5" /> Add Slot
+                      <Plus className="w-3.5 h-3.5" /> Add Range Slot
                     </button>
                   </div>
 
-                  <span className="text-xs text-neutral-400 hidden sm:inline">| Quick Add:</span>
+                  <span className="text-xs text-neutral-400 hidden xl:inline">| Quick Add:</span>
                   <div className="flex flex-wrap items-center gap-1.5">
-                    {['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'].map((preset) => (
+                    {[
+                      '09:00 AM - 10:00 AM',
+                      '10:00 AM - 11:00 AM',
+                      '11:00 AM - 12:00 PM',
+                      '01:00 PM - 02:00 PM',
+                      '02:00 PM - 03:00 PM',
+                      '03:00 PM - 04:00 PM',
+                      '04:00 PM - 05:00 PM',
+                    ].map((preset) => (
                       <button
                         key={preset}
                         type="button"
