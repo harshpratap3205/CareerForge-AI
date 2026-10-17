@@ -114,7 +114,7 @@ GOOGLE_CALENDAR_REFRESH_TOKEN=1//...
 
 Create `client/.env.local`:
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:5000/api
+Server_API_URL=http://localhost:5000/api
 ```
 
 ### 2. Install & Start Server

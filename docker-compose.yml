@@ -50,7 +50,7 @@ services:
     environment:
       HOSTNAME: '0.0.0.0'
       PORT: 3000
-      NEXT_PUBLIC_API_URL: http://localhost:5000/api
+      Server_API_URL: http://localhost:5000/api
     depends_on:
       - server
 

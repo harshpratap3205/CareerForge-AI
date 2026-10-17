@@ -160,7 +160,7 @@ export default function ChatPage() {
 
     try {
       let token = await getValidAccessToken();
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const apiBase = process.env.Server_API_URL || 'http://localhost:5000/api';
 
       let response = await fetch(`${apiBase}/chat/sessions/${targetSessionId}/stream`, {
         method: 'POST',
