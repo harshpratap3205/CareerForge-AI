@@ -221,8 +221,7 @@ export class AuthService {
     });
 
     return {
-      message: 'If an account exists with that email address, a password reset link has been dispatched.',
-      resetToken: config.nodeEnv !== 'production' ? resetToken : undefined,
+      message: 'If an account exists with that email address, a password reset link has been dispatched to your email inbox. Please check your email.',
     };
   }
 

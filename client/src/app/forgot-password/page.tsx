@@ -10,23 +10,19 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [devResetToken, setDevResetToken] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccessMessage('');
-    setDevResetToken(null);
     setLoading(true);
 
     try {
       const res = await api.post('/auth/forgot-password', { email: email.trim() });
       setSuccessMessage(
-        res.data?.message || 'If an account exists with that email, a password reset link has been dispatched.'
+        res.data?.message ||
+          'If an account exists with that email address, a password reset link has been dispatched to your email inbox.'
       );
-      if (res.data?.data?.resetToken) {
-        setDevResetToken(res.data.data.resetToken);
-      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Unable to process password reset request. Please retry.');
     } finally {
@@ -50,7 +46,9 @@ export default function ForgotPasswordPage() {
           </div>
           <div>
             <h1 className="text-lg font-bold text-neutral-900">Forgot Password</h1>
-            <p className="text-xs text-neutral-500">We will email you a secure link to reset it</p>
+            <p className="text-xs text-neutral-500">
+              Enter your email and we will send a password reset link to your inbox
+            </p>
           </div>
         </div>
 
@@ -61,57 +59,59 @@ export default function ForgotPasswordPage() {
           </div>
         )}
 
-        {successMessage && (
-          <div className="my-4 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl space-y-2">
+        {successMessage ? (
+          <div className="my-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl space-y-3">
             <div className="flex items-start gap-2.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-              <span className="font-medium">{successMessage}</span>
-            </div>
-            {devResetToken && (
-              <div className="pt-2 border-t border-emerald-200 text-[11px] text-emerald-900">
-                <p className="font-bold">Development Quick Reset Link:</p>
-                <Link
-                  href={`/reset-password?token=${devResetToken}`}
-                  className="underline text-indigo-700 break-all font-mono"
-                >
-                  Click here to set new password directly
-                </Link>
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-sm text-emerald-900">Reset Email Dispatched</p>
+                <p className="mt-1 text-emerald-800 leading-relaxed">
+                  {successMessage} Please check your email inbox (and spam/junk folder) for the reset link.
+                </p>
               </div>
-            )}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4 mt-5">
-          <div>
-            <label className="block text-xs font-medium text-neutral-700 mb-1">Your Registered Email</label>
-            <div className="relative">
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
-                className="w-full px-3 py-2 pl-9 border border-neutral-300 rounded-lg text-xs text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-indigo-600 transition"
-              />
-              <Mail className="w-3.5 h-3.5 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
             </div>
+            <Link
+              href="/login"
+              className="block w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg text-xs transition text-center"
+            >
+              Return to Sign In
+            </Link>
           </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4 mt-5">
+            <div>
+              <label className="block text-xs font-medium text-neutral-700 mb-1">
+                Your Registered Email
+              </label>
+              <div className="relative">
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  className="w-full px-3 py-2 pl-9 border border-neutral-300 rounded-lg text-xs text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-indigo-600 transition"
+                />
+                <Mail className="w-3.5 h-3.5 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              </div>
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-xs transition duration-150 flex items-center justify-center gap-2 disabled:opacity-60 shadow-xs cursor-pointer"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Sending Reset Link...</span>
-              </>
-            ) : (
-              'Send Password Reset Link'
-            )}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-xs transition duration-150 flex items-center justify-center gap-2 disabled:opacity-60 shadow-xs cursor-pointer"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Dispatching Email...</span>
+                </>
+              ) : (
+                'Send Password Reset Email'
+              )}
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );
