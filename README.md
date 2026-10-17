@@ -12,7 +12,7 @@ CareerForge AI is an all-in-one career acceleration platform that connects ambit
   - **Modern Professional**: Designed for executive recruiters with SVG contact icons, color-coded skill pills, and modern typography.
   - **ATS Classic**: Strict 100% monochrome, single-column layout with standard serif typography engineered for legacy Applicant Tracking Systems (Taleo, Workday, Greenhouse).
 - **AI Career Advisor**: Live conversational career coaching with real-time Server-Sent Events (SSE) streaming for interview preparation and resume feedback.
-- **1-on-1 Mentorship Booking**: Browse verified career mentors, select flexible session windows (including standard hour and half-hour start options like 10:30 AM within 10-11 AM, and 3:00 to 4:00 PM), complete secure Stripe Checkout, and receive instant Google Meet video invitations.
+- **1-on-1 Mentorship Booking**: Browse verified career mentors, select 1-hour session time ranges (e.g. 10:00 AM - 11:00 AM, 03:00 PM - 04:00 PM), complete secure Stripe Checkout, and receive instant Google Meet video invitations.
 
 ### 2. Consultant Workspace
 - **Rate & Profile Management**: Set your hourly consultation rate ($/hr), edit your professional specialty, and update your coaching bio.
@@ -129,6 +129,26 @@ cd server
 npm test
 ```
 Executes the full test suite covering Authentication, Token Refresh Rotation, AI Advisory Streaming, Resume Engine, Consultation Slot Validation, and Payment Confirmation.
+
+---
+
+### 4. Running with Docker Compose
+
+To launch the complete application stack (MongoDB, Redis, Express Server, and Next.js Client) using Docker:
+
+```bash
+docker compose up --build -d
+```
+
+- **Frontend**: [http://localhost:3000](http://localhost:3000)
+- **Backend API & Swagger**: [http://localhost:5000/api/docs](http://localhost:5000/api/docs)
+
+To populate demo accounts inside the running container:
+```bash
+docker compose exec server npm run seed
+```
+
+> For the complete list of Docker commands, port explanations, shell debugging, and troubleshooting guides, read the [Docker Guide (DOCKER.md)](file:///c:/Users/harsh/Downloads/CareerForge%20AI/DOCKER.md).
 
 ---
 
