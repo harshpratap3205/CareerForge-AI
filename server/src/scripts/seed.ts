@@ -124,13 +124,115 @@ async function seedAll() {
       ];
       await david.save();
     }
-    console.log('[Seed] Ready Consultant 2: david.chen@careerforge.ai / Consultant@123');
+    // 3. Seed Candidate Demo User
+    const candidatePassword = 'Candidate@123';
+    const candidateHash = await bcrypt.hash(candidatePassword, 10);
+    let candidateUser = await User.findOne({ email: 'candidate@careerforge.ai' });
+    if (!candidateUser) {
+      candidateUser = await User.create({
+        name: 'Alex Johnson',
+        email: 'candidate@careerforge.ai',
+        passwordHash: candidateHash,
+        role: 'USER',
+        phone: '+1 (555) 234-5678',
+        targetRole: 'Senior Full-Stack Engineer',
+        skills: ['TypeScript', 'React', 'Next.js', 'Node.js', 'Express', 'MongoDB', 'Docker', 'AWS'],
+        bio: 'Senior Full-Stack Developer with 6+ years specializing in distributed systems, real-time architectures, and high-performance React frontends.',
+      });
+      console.log(`[Seed] Created Demo Candidate: candidate@careerforge.ai / Candidate@123`);
+    } else {
+      candidateUser.passwordHash = candidateHash;
+      candidateUser.role = 'USER';
+      await candidateUser.save();
+      console.log(`[Seed] Updated Demo Candidate: candidate@careerforge.ai / Candidate@123`);
+    }
+
+    // Seed sample resume for Alex Johnson if none exists
+    let candidateResume = await Resume.findOne({ userId: candidateUser._id });
+    if (!candidateResume) {
+      const sampleData = {
+        personalInfo: {
+          fullName: 'Alex Johnson',
+          email: 'candidate@careerforge.ai',
+          phone: '+1 (555) 234-5678',
+          location: 'San Francisco, CA',
+          portfolioUrl: 'https://alexjohnson.dev',
+          linkedinUrl: 'https://linkedin.com/in/alexjohnson',
+          githubUrl: 'https://github.com/alexjohnson',
+        },
+        summary: 'Senior Full-Stack Engineer with 6+ years of experience building resilient microservices, responsive web apps, and automated CI/CD pipelines.',
+        experience: [
+          {
+            company: 'TechFlow Solutions',
+            role: 'Senior Full-Stack Engineer',
+            location: 'San Francisco, CA',
+            startDate: '2022',
+            endDate: 'Present',
+            description: 'Architected distributed event-driven microservices handling 2M+ daily requests using Node.js and Redis. Spearheaded migration of legacy frontend to Next.js 14, improving Core Web Vitals by 42%.',
+          },
+          {
+            company: 'Apex Cloud Systems',
+            role: 'Software Engineer',
+            location: 'Austin, TX',
+            startDate: '2019',
+            endDate: '2022',
+            description: 'Engineered REST APIs with Express and MongoDB. Designed real-time collaboration canvas using WebSockets.',
+          },
+        ],
+        education: [
+          {
+            institution: 'University of California, Berkeley',
+            degree: 'B.S. in Computer Science',
+            fieldOfStudy: 'Software Engineering',
+            graduationYear: '2019',
+          },
+        ],
+        skills: ['TypeScript', 'JavaScript', 'React', 'Next.js', 'Node.js', 'Express', 'MongoDB', 'Redis', 'Docker', 'PostgreSQL'],
+        projects: [
+          {
+            name: 'CloudSync Orchestrator',
+            description: 'Real-time multi-cloud deployment visualizer built with React, Go, and Redis.',
+            technologies: ['React', 'Go', 'Redis', 'Docker'],
+            url: 'https://github.com/alexjohnson/cloudsync',
+          },
+        ],
+        certifications: [
+          {
+            name: 'AWS Certified Solutions Architect – Associate',
+            issuer: 'Amazon Web Services',
+            issueDate: '2023',
+          },
+        ],
+        achievements: [
+          'Engineered event architecture reducing cloud compute costs by 28% year-over-year',
+        ],
+      };
+
+      const tiptapHtml = ResumeTemplateEngine.renderModern(sampleData);
+      candidateResume = await Resume.create({
+        userId: candidateUser._id,
+        title: 'Senior Full-Stack Resume',
+        templateId: 'modern',
+        data: sampleData,
+        tiptapHtml,
+        versions: [
+          {
+            versionNumber: 1,
+            data: sampleData,
+            tiptapHtml,
+            createdAt: new Date(),
+          },
+        ],
+      });
+      console.log(`[Seed] Seeded sample resume for Alex Johnson.`);
+    }
 
     console.log('\n======================================================');
     console.log('✅ SYSTEM ROLES INITIALIZED:');
     console.log('1. Admin:       admin@careerforge.ai          / Admin@123456');
     console.log('2. Consultant:  sarah.jenkins@careerforge.ai  / Consultant@123');
     console.log('3. Consultant:  david.chen@careerforge.ai     / Consultant@123');
+    console.log('4. Candidate:   candidate@careerforge.ai      / Candidate@123');
     console.log('======================================================\n');
 
     await mongoose.disconnect();

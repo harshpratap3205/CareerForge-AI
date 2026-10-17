@@ -114,19 +114,20 @@ CareerForge AI is an enterprise-grade career acceleration and technical consulta
 
 ## 🔑 Demo Accounts & Test Credentials
 
-The database can be initialized with standard administrator and consultant accounts:
+The database comes pre-configured with all four platform roles ready for immediate login and evaluation:
 
 | Role | Name | Email | Password | Portal View |
 | :--- | :--- | :--- | :--- | :--- |
-| **Platform Administrator** | Platform Administrator | `admin@careerforge.ai` | `Admin@123456` | **Admin Command Center**: Analytics, User Management (`/admin/users`), system bookings. |
-| **Career Consultant** | Sarah Jenkins | `sarah.jenkins@careerforge.ai` | `Consultant@123` | **Consultant Workspace**: Assigned sessions, Google Meet links. |
+| **Candidate / Job Seeker** | Alex Johnson | `candidate@careerforge.ai` | `Candidate@123` | **Candidate Portal**: Pre-seeded resume, TipTap editor with autosave, version snapshots, AI chat advisor, mentor booking & Stripe checkout. |
+| **Platform Administrator** | Platform Administrator | `admin@careerforge.ai` | `Admin@123456` | **Admin Command Center**: Platform analytics, User Management (`/admin/users`), system bookings oversight. |
+| **Career Consultant** | Sarah Jenkins | `sarah.jenkins@careerforge.ai` | `Consultant@123` | **Consultant Workspace**: Assigned sessions, Google Meet video links, isolated mentor schedule. |
 | **Career Consultant** | David Chen | `david.chen@careerforge.ai` | `Consultant@123` | **Consultant Workspace**: Secondary consultant demonstrating schedule isolation. |
 
-To initialize or reset platform roles:
+To initialize or reset all demo accounts:
 
 ```bash
 cd server
-npm run seed:admin
+npm run seed
 ```
 
 ---
