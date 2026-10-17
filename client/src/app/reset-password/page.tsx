@@ -110,7 +110,7 @@ function ResetPasswordContent() {
                 minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Create a strong password (e.g. Secure@1234)"
+                placeholder="Create a strong password"
                 className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-indigo-600 transition"
               />
             </div>

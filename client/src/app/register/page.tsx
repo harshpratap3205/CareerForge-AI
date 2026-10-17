@@ -132,7 +132,7 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-3 py-2 pr-9 border border-neutral-300 rounded-lg text-xs text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 transition"
-                placeholder="Create a strong password (e.g. Secure@1234)"
+                placeholder="Create a strong password"
               />
               <button
                 type="button"
