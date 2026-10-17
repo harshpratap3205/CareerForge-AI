@@ -26,8 +26,16 @@ function ResetPasswordContent() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+    if (
+      password.length < 8 ||
+      !/[A-Z]/.test(password) ||
+      !/[a-z]/.test(password) ||
+      !/[0-9]/.test(password) ||
+      !/[^A-Za-z0-9]/.test(password)
+    ) {
+      setError(
+        'Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character (e.g. !@#$%^&*).'
+      );
       return;
     }
 
@@ -92,13 +100,17 @@ function ResetPasswordContent() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 mt-5">
             <div>
-              <label className="block text-xs font-medium text-neutral-700 mb-1">New Password</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium text-neutral-700">New Password</label>
+                <span className="text-[10px] text-neutral-400">Min 8 chars, 1 uppercase, 1 special</span>
+              </div>
               <input
                 type="password"
                 required
+                minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 6 characters"
+                placeholder="Create a strong password (e.g. Secure@1234)"
                 className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-indigo-600 transition"
               />
             </div>
@@ -108,9 +120,10 @@ function ResetPasswordContent() {
               <input
                 type="password"
                 required
+                minLength={8}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Re-enter password"
+                placeholder="Re-enter your new password"
                 className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-indigo-600 transition"
               />
             </div>

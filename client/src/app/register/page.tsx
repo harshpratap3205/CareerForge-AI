@@ -101,7 +101,7 @@ export default function RegisterPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 transition"
-              placeholder="John Doe"
+              placeholder="Enter your full name"
             />
           </div>
 
@@ -114,22 +114,25 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 transition"
-              placeholder="name@example.com"
+              placeholder="Enter your email address"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-neutral-700 mb-1">Password</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-medium text-neutral-700">Password</label>
+              <span className="text-[10px] text-neutral-400">Min 8 chars, 1 uppercase, 1 special</span>
+            </div>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
-                minLength={6}
+                minLength={8}
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-3 py-2 pr-9 border border-neutral-300 rounded-lg text-xs text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 transition"
-                placeholder="Minimum 6 characters"
+                placeholder="Create a strong password (e.g. Secure@1234)"
               />
               <button
                 type="button"
@@ -140,6 +143,9 @@ export default function RegisterPage() {
                 {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               </button>
             </div>
+            <p className="text-[10px] text-neutral-500 mt-1">
+              Must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special symbol.
+            </p>
           </div>
 
           <button

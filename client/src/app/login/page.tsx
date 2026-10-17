@@ -80,7 +80,7 @@ function LoginForm() {
                 ? 'border-rose-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/10'
                 : 'border-neutral-300 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10'
             }`}
-            placeholder="name@example.com"
+            placeholder="Enter your email address"
           />
         </div>
 
@@ -106,7 +106,7 @@ function LoginForm() {
                   ? 'border-rose-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/10'
                   : 'border-neutral-300 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10'
               }`}
-              placeholder="••••••••"
+              placeholder="Enter your password"
             />
             <button
               type="button"

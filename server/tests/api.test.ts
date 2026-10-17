@@ -80,6 +80,20 @@ describe('CareerForge API Test Suite', () => {
       expect(res.status).toBe(409);
     });
 
+    it('should reject registration with a weak password missing special character or uppercase', async () => {
+      const res = await request(app)
+        .post('/api/auth/register')
+        .send({
+          name: 'Weak Password User',
+          email: 'weak.password.user@example.com',
+          password: 'password123',
+          role: 'USER',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+
     it('should log in with valid credentials', async () => {
       const res = await request(app)
         .post('/api/auth/login')
