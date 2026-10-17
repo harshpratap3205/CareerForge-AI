@@ -41,16 +41,22 @@ function SuccessContent() {
           await api.post('/payments/verify-session', { sessionId }).catch(console.warn);
         }
 
-        const res = await api.get('/bookings', { params: { limit: 20 } });
-        const match = res.data.data.items.find((b: any) => b._id === bookingId);
+        let match: any = null;
+        try {
+          const singleRes = await api.get(`/bookings/${bookingId}`);
+          match = singleRes.data.data.booking;
+        } catch (_) {
+          const res = await api.get('/bookings', { params: { limit: 20 } });
+          match = res.data.data.items.find((b: any) => b._id === bookingId);
+        }
         setBooking(match);
 
         // If status is transitioning from PAID to CONFIRMED or generating meet link, poll once more
         if (match && (!match.meetingLink || match.status === 'PAID')) {
           setTimeout(async () => {
             try {
-              const retryRes = await api.get('/bookings', { params: { limit: 20 } });
-              const retryMatch = retryRes.data.data.items.find((b: any) => b._id === bookingId);
+              const retryRes = await api.get(`/bookings/${bookingId}`);
+              const retryMatch = retryRes.data.data.booking;
               if (retryMatch) setBooking(retryMatch);
             } catch (_) {}
           }, 1500);

@@ -4,8 +4,8 @@ import { config } from '../../config/env.js';
 import { ChatSession, ChatMessage, IChatMessage } from './chat.model.js';
 import mongoose from 'mongoose';
 
-const GROQ_MODELS = ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b'];
-const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini-3.8-flash'];
+const GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+const GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'];
 
 export class ChatService {
   private static getGroqClient(): Groq | null {
@@ -13,10 +13,27 @@ export class ChatService {
     return new Groq({ apiKey: config.groq.apiKey });
   }
 
+  static resolveGroqModel(modelName: string): string {
+    if (modelName === 'openai/gpt-oss-120b' || modelName.includes('oss') || modelName.includes('gpt')) {
+      return 'llama-3.3-70b-versatile';
+    }
+    if (modelName === 'qwen/qwen3.8-27b' || modelName.includes('qwen')) {
+      return 'llama-3.1-8b-instant';
+    }
+    return modelName || 'llama-3.3-70b-versatile';
+  }
+
+  static resolveGeminiModel(modelName?: string): string {
+    if (!modelName || modelName.includes('3.5') || modelName.includes('3.8') || modelName.includes('latest')) {
+      return 'gemini-1.5-flash';
+    }
+    return modelName;
+  }
+
   private static getGeminiModel(modelName?: string) {
     if (!config.gemini.apiKey) return null;
     const genAI = new GoogleGenerativeAI(config.gemini.apiKey);
-    const selectedModel = modelName || 'gemini-flash-latest';
+    const selectedModel = this.resolveGeminiModel(modelName);
     return genAI.getGenerativeModel({
       model: selectedModel,
       systemInstruction:
@@ -170,8 +187,9 @@ export class ChatService {
             { role: 'user', content: userMessage },
           ];
 
+          const resolvedModel = this.resolveGroqModel(candidate);
           const comp = await groq.chat.completions.create({
-            model: candidate,
+            model: resolvedModel,
             messages: groqMessages as any,
           });
 
@@ -282,8 +300,9 @@ export class ChatService {
             { role: 'user', content: userMessage },
           ];
 
+          const resolvedModel = this.resolveGroqModel(candidate);
           const stream = await groq.chat.completions.create({
-            model: candidate,
+            model: resolvedModel,
             messages: groqMessages as any,
             stream: true,
           });

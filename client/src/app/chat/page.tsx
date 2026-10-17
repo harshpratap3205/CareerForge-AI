@@ -32,10 +32,10 @@ interface ChatMessage {
 }
 
 const AVAILABLE_MODELS = [
-  { id: 'openai/gpt-oss-120b', name: 'Groq GPT-OSS 120B', badge: 'Ultra Fast' },
-  { id: 'qwen/qwen3.8-27b', name: 'Groq Qwen 27B', badge: 'Accurate' },
-  { id: 'gemini-flash-latest', name: 'Gemini Flash', badge: 'Google' },
-  { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', badge: 'Latest' },
+  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B (Groq)', badge: 'Ultra Fast' },
+  { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B (Groq)', badge: 'Instant' },
+  { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash (Google)', badge: 'Google' },
+  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash (Google)', badge: 'Latest' },
 ];
 
 const SUGGESTED_PROMPTS = [
@@ -50,7 +50,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('openai/gpt-oss-120b');
+  const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
   const [editTitleText, setEditTitleText] = useState('');
   const [showMobileSessions, setShowMobileSessions] = useState(false);

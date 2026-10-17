@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { Booking, Consultant, BookingStatus, IBooking } from './booking.model.js';
 import { User } from '../auth/user.model.js';
 import { cacheDel } from '../../config/redis.js';
+import { DashboardService } from '../dashboard/dashboard.service.js';
 
 export class BookingService {
   static async seedConsultantsIfEmpty() {
@@ -188,7 +189,7 @@ export class BookingService {
     });
 
     const saved = await booking.save();
-    await cacheDel(`dashboard:${userId}`);
+    await DashboardService.invalidateDashboardCache(userId, consultant.userId?.toString());
     return saved;
   }
 
@@ -227,7 +228,7 @@ export class BookingService {
     if (metadata?.meetingLink) booking.meetingLink = metadata.meetingLink;
 
     const saved = await booking.save();
-    await cacheDel(`dashboard:${booking.userId.toString()}`);
+    await DashboardService.invalidateDashboardCache(booking.userId.toString());
     return saved;
   }
 
@@ -365,5 +366,21 @@ export class BookingService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  static async getBookingById(bookingId: string, userId: string, role: string, userEmail?: string) {
+    if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+      return null;
+    }
+    const filter: any = { _id: new mongoose.Types.ObjectId(bookingId) };
+    if (role === 'CONSULTANT') {
+      const consultant = await this.getConsultantByUserIdOrEmail(userId, userEmail);
+      if (consultant) {
+        filter.consultantId = consultant._id;
+      }
+    } else if (role !== 'ADMIN') {
+      filter.userId = new mongoose.Types.ObjectId(userId);
+    }
+    return Booking.findOne(filter).populate('consultantId', 'name specialty hourlyRate avatarUrl email');
   }
 }

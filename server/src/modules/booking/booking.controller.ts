@@ -80,6 +80,24 @@ export class BookingController {
     }
   }
 
+  static async getBookingById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const booking = await BookingService.getBookingById(
+        req.params.id,
+        req.user!.userId,
+        req.user!.role,
+        req.user?.email
+      );
+      if (!booking) {
+        res.status(404).json({ success: false, message: 'Booking not found' });
+        return;
+      }
+      res.status(200).json({ success: true, data: { booking } });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async cancelBooking(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const booking = await BookingService.updateStatus(req.params.id, 'CANCELLED');

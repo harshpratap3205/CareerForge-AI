@@ -13,6 +13,7 @@ router.get('/consultants/:id', BookingController.getConsultantById);
 
 router.post('/', BookingController.createBooking);
 router.get('/', BookingController.getBookings);
+router.get('/:id', BookingController.getBookingById);
 router.patch('/:id/cancel', BookingController.cancelBooking);
 
 export const bookingRoutes = router;

@@ -3,9 +3,25 @@ import { Resume } from '../resume/resume.model.js';
 import { ChatSession } from '../chat/chat.model.js';
 import { Booking, Consultant } from '../booking/booking.model.js';
 import { User } from '../auth/user.model.js';
-import { cacheGet, cacheSet } from '../../config/redis.js';
+import { cacheGet, cacheSet, cacheDel } from '../../config/redis.js';
 
 export class DashboardService {
+  static async invalidateDashboardCache(userId: string, consultantUserId?: string) {
+    const keys = [
+      `dashboard:${userId}`,
+      `dashboard:USER:${userId}`,
+      `dashboard:CONSULTANT:${userId}`,
+      `dashboard:ADMIN:${userId}`,
+    ];
+    if (consultantUserId) {
+      keys.push(
+        `dashboard:${consultantUserId}`,
+        `dashboard:CONSULTANT:${consultantUserId}`
+      );
+    }
+    await Promise.all(keys.map((k) => cacheDel(k)));
+  }
+
   static async getStats(userId: string, role = 'USER', email?: string) {
     const cacheKey = `dashboard:${role}:${userId}`;
 

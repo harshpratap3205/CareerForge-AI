@@ -5,6 +5,7 @@ import { config } from '../../config/env.js';
 import { Resume, IResume } from './resume.model.js';
 import { ResumeTemplateEngine } from './resume.templates.js';
 import { cacheDel } from '../../config/redis.js';
+import { DashboardService } from '../dashboard/dashboard.service.js';
 
 export class ResumeService {
   private static getGroqClient(): Groq | null {
@@ -63,7 +64,7 @@ export class ResumeService {
     });
 
     const saved = await resume.save();
-    await cacheDel(`dashboard:${userId}`);
+    await DashboardService.invalidateDashboardCache(userId);
     return saved;
   }
 
@@ -121,7 +122,7 @@ export class ResumeService {
     }
 
     const saved = await resume.save();
-    await cacheDel(`dashboard:${userId}`);
+    await DashboardService.invalidateDashboardCache(userId);
     return saved;
   }
 
@@ -150,7 +151,7 @@ export class ResumeService {
     });
 
     const saved = await cloned.save();
-    await cacheDel(`dashboard:${userId}`);
+    await DashboardService.invalidateDashboardCache(userId);
     return saved;
   }
 
@@ -160,7 +161,7 @@ export class ResumeService {
       userId: new mongoose.Types.ObjectId(userId),
     });
     if (result) {
-      await cacheDel(`dashboard:${userId}`);
+      await DashboardService.invalidateDashboardCache(userId);
     }
     return result;
   }
