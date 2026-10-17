@@ -4,8 +4,8 @@ import { config } from '../../config/env.js';
 import { ChatSession, ChatMessage, IChatMessage } from './chat.model.js';
 import mongoose from 'mongoose';
 
-const GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
-const GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'];
+const GROQ_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b'];
+const GEMINI_MODELS = ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash'];
 
 export class ChatService {
   private static getGroqClient(): Groq | null {
@@ -14,18 +14,18 @@ export class ChatService {
   }
 
   static resolveGroqModel(modelName: string): string {
-    if (modelName === 'openai/gpt-oss-120b' || modelName.includes('oss') || modelName.includes('gpt')) {
-      return 'llama-3.3-70b-versatile';
+    if (modelName === 'llama-3.3-70b-versatile' || modelName === 'llama-3.1-8b-instant' || modelName.includes('llama')) {
+      return 'openai/gpt-oss-120b';
     }
     if (modelName === 'qwen/qwen3.8-27b' || modelName.includes('qwen')) {
-      return 'llama-3.1-8b-instant';
+      return 'qwen/qwen3.8-27b';
     }
-    return modelName || 'llama-3.3-70b-versatile';
+    return modelName || 'openai/gpt-oss-120b';
   }
 
   static resolveGeminiModel(modelName?: string): string {
-    if (!modelName || modelName.includes('3.5') || modelName.includes('3.8') || modelName.includes('latest')) {
-      return 'gemini-1.5-flash';
+    if (!modelName || modelName.includes('1.5') || modelName.includes('2.0') || modelName.includes('latest')) {
+      return 'gemini-3.8-flash';
     }
     return modelName;
   }

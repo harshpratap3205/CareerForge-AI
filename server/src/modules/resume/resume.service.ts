@@ -257,11 +257,11 @@ Return strictly a valid JSON object matching this schema:
 `;
 
     const modelsToTry = [
-      promptData.model || 'llama-3.3-70b-versatile',
-      'llama-3.3-70b-versatile',
-      'llama-3.1-8b-instant',
-      'gemini-1.5-flash',
-      'gemini-2.0-flash',
+      promptData.model || 'openai/gpt-oss-120b',
+      'openai/gpt-oss-120b',
+      'openai/gpt-oss-20b',
+      'qwen/qwen3.8-27b',
+      'gemini-3.8-flash',
     ].filter((m, idx, arr) => arr.indexOf(m) === idx);
 
     for (const candidate of modelsToTry) {
