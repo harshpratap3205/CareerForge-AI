@@ -126,88 +126,11 @@ async function seedAll() {
     }
     console.log('[Seed] Ready Consultant 2: david.chen@careerforge.ai / Consultant@123');
 
-    // 3. Seed Default Candidate / User
-    const candidateEmail = 'candidate@careerforge.ai';
-    const candidatePassword = 'Candidate@123';
-    const candidateHash = await bcrypt.hash(candidatePassword, 10);
-
-    let candidate = await User.findOne({ email: candidateEmail });
-    if (!candidate) {
-      candidate = await User.create({
-        name: 'Alex Morgan',
-        email: candidateEmail,
-        passwordHash: candidateHash,
-        role: 'USER',
-        phone: '+1 555-0199',
-      });
-      console.log(`[Seed] Created Test Candidate: ${candidateEmail} / ${candidatePassword}`);
-    } else {
-      candidate.passwordHash = candidateHash;
-      candidate.role = 'USER';
-      await candidate.save();
-      console.log(`[Seed] Updated Test Candidate: ${candidateEmail}`);
-    }
-
-    // 4. Ensure sample resume for candidate
-    const existingResume = await Resume.findOne({ userId: candidate._id });
-    if (!existingResume) {
-      const sampleResume = {
-        userId: candidate._id,
-        title: 'Full Stack Engineer - Production ATS Resume',
-        templateId: 'modern' as const,
-        personalInfo: {
-          fullName: 'Alex Morgan',
-          email: 'candidate@careerforge.ai',
-          phone: '+1 555-0199',
-          location: 'San Francisco, CA',
-          linkedin: 'linkedin.com/in/alexmorgan',
-          github: 'github.com/alexmorgan',
-        },
-        summary: 'Full-Stack Developer with 4+ years architecting scalable cloud-native microservices, high-concurrency event-driven systems with Redis, and React/Next.js client applications.',
-        experience: [
-          {
-            company: 'TechForge Solutions',
-            position: 'Senior Software Engineer',
-            location: 'San Francisco, CA',
-            startDate: '2022-03',
-            endDate: 'Present',
-            current: true,
-            bullets: [
-              'Architected distributed caching with Redis cluster reducing database response latencies by 68%.',
-              'Engineered end-to-end payment processing pipelines with Stripe webhook idempotency handling $1.2M in annual volume.',
-              'Mentored junior engineers and conducted 50+ technical hiring assessments.',
-            ],
-          },
-        ],
-        education: [
-          {
-            institution: 'University of California, Berkeley',
-            degree: 'B.S.',
-            fieldOfStudy: 'Computer Science',
-            startDate: '2017',
-            endDate: '2021',
-          },
-        ],
-        skills: {
-          technical: ['TypeScript', 'Node.js', 'React', 'Next.js', 'Express', 'MongoDB', 'Redis', 'Docker', 'AWS'],
-        },
-      };
-
-      const tiptapHtml = ResumeTemplateEngine.render(sampleResume as any, 'modern');
-      await Resume.create({
-        ...sampleResume,
-        tiptapHtml,
-        versions: [{ versionNumber: 1, data: sampleResume, tiptapHtml, createdAt: new Date() }],
-      });
-      console.log('[Seed] Created sample ATS resume for test candidate.');
-    }
-
     console.log('\n======================================================');
-    console.log('✅ ALL DEMO ACCOUNTS SEEDED SUCCESSFULLY:');
+    console.log('✅ SYSTEM ROLES INITIALIZED:');
     console.log('1. Admin:       admin@careerforge.ai          / Admin@123456');
     console.log('2. Consultant:  sarah.jenkins@careerforge.ai  / Consultant@123');
     console.log('3. Consultant:  david.chen@careerforge.ai     / Consultant@123');
-    console.log('4. Candidate:   candidate@careerforge.ai      / Candidate@123');
     console.log('======================================================\n');
 
     await mongoose.disconnect();

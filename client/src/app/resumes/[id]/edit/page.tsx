@@ -20,6 +20,9 @@ import {
   ExternalLink,
   CheckCircle,
   ArrowLeft,
+  History,
+  X,
+  RotateCcw,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -31,6 +34,7 @@ export default function EditResumePage() {
   const [templateId, setTemplateId] = useState<'modern' | 'ats-classic'>('modern');
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [showVersionModal, setShowVersionModal] = useState(false);
 
   const isLoadedRef = useRef(false);
   const autosaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -138,6 +142,17 @@ export default function EditResumePage() {
     }
   };
 
+  const handleRestoreVersion = async (v: any) => {
+    if (!editor || !v.tiptapHtml) return;
+    if (!confirm(`Restore Version #${v.versionNumber}? This will load the saved snapshot into your editor.`)) {
+      return;
+    }
+
+    editor.commands.setContent(v.tiptapHtml);
+    setShowVersionModal(false);
+    await handleSave(false, editor);
+  };
+
   return (
     <AppShell>
       <div className="space-y-4 max-w-5xl mx-auto pb-12">
@@ -174,6 +189,15 @@ export default function EditResumePage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowVersionModal(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-neutral-100 hover:bg-neutral-200 text-neutral-800 rounded-lg transition"
+              title="View version snapshots"
+            >
+              <History className="w-3.5 h-3.5 text-neutral-600" />
+              <span>Versions ({resume?.versions?.length || 1})</span>
+            </button>
+
             <select
               value={templateId}
               onChange={(e) => handleTemplateSwitch(e.target.value as any)}
@@ -295,6 +319,92 @@ export default function EditResumePage() {
         >
           <EditorContent editor={editor} />
         </div>
+
+        {/* Version History Modal */}
+        {showVersionModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/40 backdrop-blur-xs animate-in fade-in duration-150">
+            <div className="bg-white rounded-2xl max-w-lg w-full border border-neutral-200 shadow-xl overflow-hidden animate-in zoom-in-95 duration-150">
+              <div className="p-4 sm:p-5 border-b border-neutral-100 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                    <History className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-neutral-900">Resume Version History</h3>
+                    <p className="text-[11px] text-neutral-500">
+                      Rolling snapshots created on each save (up to 10 versions)
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowVersionModal(false)}
+                  className="p-1 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-4 sm:p-5 max-h-[60vh] overflow-y-auto space-y-2.5">
+                {(!resume?.versions || resume.versions.length === 0) ? (
+                  <p className="text-xs text-neutral-500 text-center py-6">
+                    No prior version snapshots recorded yet.
+                  </p>
+                ) : (
+                  [...resume.versions]
+                    .reverse()
+                    .map((v: any, index: number) => {
+                      const isLatest = index === 0;
+                      return (
+                        <div
+                          key={v._id || index}
+                          className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 transition ${
+                            isLatest
+                              ? 'bg-indigo-50/50 border-indigo-200'
+                              : 'bg-neutral-50 border-neutral-200 hover:bg-white'
+                          }`}
+                        >
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-neutral-900">
+                                Version #{v.versionNumber || resume.versions.length - index}
+                              </span>
+                              {isLatest && (
+                                <span className="text-[10px] bg-indigo-600 text-white font-semibold px-2 py-0.5 rounded-full">
+                                  Current
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-neutral-500 mt-0.5">
+                              Saved on {new Date(v.createdAt).toLocaleString()}
+                            </p>
+                          </div>
+
+                          {!isLatest && (
+                            <button
+                              onClick={() => handleRestoreVersion(v)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-white hover:bg-indigo-50 border border-indigo-200 rounded-lg shadow-2xs transition"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              <span>Restore</span>
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })
+                )}
+              </div>
+
+              <div className="p-3.5 bg-neutral-50 border-t border-neutral-100 flex justify-end">
+                <button
+                  onClick={() => setShowVersionModal(false)}
+                  className="px-4 py-1.5 text-xs font-medium text-neutral-700 bg-white border border-neutral-300 hover:bg-neutral-100 rounded-lg transition"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AppShell>
   );

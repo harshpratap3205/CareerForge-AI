@@ -89,6 +89,87 @@ export class NotificationService {
     }
   }
 
+  static async sendPasswordResetEmail(params: {
+    userEmail: string;
+    userName: string;
+    resetToken: string;
+  }): Promise<boolean> {
+    const transporter = this.getMailTransporter();
+    const resetUrl = `${config.clientUrl}/reset-password?token=${params.resetToken}`;
+    const mailOptions = {
+      from: config.smtp.from,
+      to: params.userEmail,
+      subject: 'Reset your CareerForge AI password',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <h2 style="color: #4F46E5; margin-top: 0;">Password Reset Request</h2>
+          <p>Hi <strong>${params.userName || 'User'}</strong>,</p>
+          <p>We received a request to reset the password for your CareerForge AI account.</p>
+          <div style="margin: 24px 0;">
+            <a href="${resetUrl}" style="background-color: #4F46E5; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Reset Password</a>
+          </div>
+          <p style="font-size: 13px; color: #64748b;">Or copy and paste this URL into your browser:</p>
+          <p style="font-size: 12px; color: #4F46E5; word-break: break-all;">${resetUrl}</p>
+          <p style="font-size: 12px; color: #94a3b8; margin-top: 24px;">This link will expire in 1 hour. If you did not request this, please safely ignore this email.</p>
+        </div>
+      `,
+    };
+
+    if (!transporter) {
+      console.log(`[Email Notification] Simulated Password Reset email to ${params.userEmail}:`);
+      console.log(`  - Reset URL: ${resetUrl}`);
+      return true;
+    }
+
+    try {
+      await transporter.sendMail(mailOptions);
+      return true;
+    } catch (error: any) {
+      console.error(`[Email Notification] Error sending reset email: ${error.message}`);
+      return false;
+    }
+  }
+
+  static async sendEmailVerificationEmail(params: {
+    userEmail: string;
+    userName: string;
+    verificationToken: string;
+  }): Promise<boolean> {
+    const transporter = this.getMailTransporter();
+    const verifyUrl = `${config.clientUrl}/verify-email?token=${params.verificationToken}`;
+    const mailOptions = {
+      from: config.smtp.from,
+      to: params.userEmail,
+      subject: 'Verify your email for CareerForge AI',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <h2 style="color: #4F46E5; margin-top: 0;">Welcome to CareerForge AI!</h2>
+          <p>Hi <strong>${params.userName || 'there'}</strong>,</p>
+          <p>Thank you for creating an account. Please click the button below to verify your email address:</p>
+          <div style="margin: 24px 0;">
+            <a href="${verifyUrl}" style="background-color: #10B981; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Verify Email</a>
+          </div>
+          <p style="font-size: 13px; color: #64748b;">Or copy and paste this link in your browser:</p>
+          <p style="font-size: 12px; color: #10B981; word-break: break-all;">${verifyUrl}</p>
+        </div>
+      `,
+    };
+
+    if (!transporter) {
+      console.log(`[Email Notification] Simulated Email Verification to ${params.userEmail}:`);
+      console.log(`  - Verify URL: ${verifyUrl}`);
+      return true;
+    }
+
+    try {
+      await transporter.sendMail(mailOptions);
+      return true;
+    } catch (error: any) {
+      console.error(`[Email Notification] Error sending verification email: ${error.message}`);
+      return false;
+    }
+  }
+
   static async createGoogleCalendarEvent(params: {
     userName: string;
     userEmail: string;

@@ -15,6 +15,11 @@ export interface IUser extends Document {
     skills?: string[];
     experienceYears?: number;
   };
+  isVerified?: boolean;
+  emailVerificationToken?: string;
+  emailVerificationExpires?: Date;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
   refreshTokenHash?: string;
   previousRefreshTokenHash?: string;
   rotatedAt?: Date;
@@ -58,6 +63,24 @@ const UserSchema = new Schema<IUser>(
       skills: [{ type: String }],
       experienceYears: { type: Number, default: 0 },
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerificationToken: {
+      type: String,
+      index: true,
+    },
+    emailVerificationExpires: {
+      type: Date,
+    },
+    resetPasswordToken: {
+      type: String,
+      index: true,
+    },
+    resetPasswordExpires: {
+      type: Date,
+    },
     refreshTokenHash: {
       type: String,
     },
@@ -75,6 +98,8 @@ const UserSchema = new Schema<IUser>(
         delete (ret as Record<string, unknown>).passwordHash;
         delete (ret as Record<string, unknown>).refreshTokenHash;
         delete (ret as Record<string, unknown>).previousRefreshTokenHash;
+        delete (ret as Record<string, unknown>).resetPasswordToken;
+        delete (ret as Record<string, unknown>).emailVerificationToken;
         delete (ret as Record<string, unknown>).__v;
         return ret;
       },

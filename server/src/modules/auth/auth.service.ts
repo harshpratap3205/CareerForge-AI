@@ -1,9 +1,11 @@
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { User, IUser, UserRole } from './user.model.js';
 import { Consultant } from '../booking/booking.model.js';
 import { cacheDel } from '../../config/redis.js';
 import { config } from '../../config/env.js';
+import { NotificationService } from '../notification/notification.service.js';
 
 export interface TokenPair {
   accessToken: string;
@@ -61,17 +63,30 @@ export class AuthService {
     }
 
     const passwordHash = await this.hashPassword(data.password);
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 3600 * 1000);
+
     const user = new User({
       name: data.name,
       email: data.email.toLowerCase(),
       phone: data.phone,
       passwordHash,
       role: assignedRole,
+      isVerified: false,
+      emailVerificationToken: verificationToken,
+      emailVerificationExpires: verificationExpires,
     });
 
     const tokens = this.generateTokens(user);
     user.refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 8);
     await user.save();
+
+    // Dispatch verification email in background
+    NotificationService.sendEmailVerificationEmail({
+      userEmail: user.email,
+      userName: user.name,
+      verificationToken,
+    }).catch((err) => console.error('[Auth] Failed to send verification email:', err));
 
     if (assignedRole === 'CONSULTANT') {
       const existingConsultant = await Consultant.findOne({ email: data.email.toLowerCase() });
@@ -184,5 +199,68 @@ export class AuthService {
 
   static async logout(userId: string): Promise<void> {
     await User.findByIdAndUpdate(userId, { $unset: { refreshTokenHash: 1 } });
+  }
+
+  static async forgotPassword(email: string): Promise<{ message: string; resetToken?: string }> {
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return {
+        message: 'If an account exists with that email address, a password reset link has been dispatched.',
+      };
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = new Date(Date.now() + 3600 * 1000); // 1 hour validity
+    await user.save();
+
+    await NotificationService.sendPasswordResetEmail({
+      userEmail: user.email,
+      userName: user.name,
+      resetToken,
+    });
+
+    return {
+      message: 'If an account exists with that email address, a password reset link has been dispatched.',
+      resetToken: config.nodeEnv !== 'production' ? resetToken : undefined,
+    };
+  }
+
+  static async resetPassword(token: string, newPass: string): Promise<void> {
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: new Date() },
+    });
+
+    if (!user) {
+      const err: any = new Error('Password reset token is invalid or has expired');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    user.passwordHash = await this.hashPassword(newPass);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    user.refreshTokenHash = undefined;
+    user.previousRefreshTokenHash = undefined;
+    await user.save();
+  }
+
+  static async verifyEmail(token: string): Promise<void> {
+    const user = await User.findOne({
+      emailVerificationToken: token,
+      emailVerificationExpires: { $gt: new Date() },
+    });
+
+    if (!user) {
+      const err: any = new Error('Email verification link is invalid or has expired');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    user.isVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save();
   }
 }

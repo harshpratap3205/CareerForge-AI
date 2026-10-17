@@ -10,23 +10,34 @@ import {
   CalendarCheck,
   X,
   PlusCircle,
+  ShieldCheck,
+  Clock,
 } from 'lucide-react';
 import clsx from 'clsx';
+import { useAuth } from '../../context/AuthContext';
 
 interface SidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
 }
 
-const navItems = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Advisory Chat', href: '/chat', icon: MessageSquare },
-  { label: 'Resume Builder', href: '/resumes', icon: FileText },
-  { label: 'Consultations', href: '/consultations', icon: CalendarCheck },
-];
-
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
   const pathname = usePathname();
+  const { user } = useAuth();
+
+  const navItems = [
+    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { label: 'Advisory Chat', href: '/chat', icon: MessageSquare },
+    { label: 'Resume Builder', href: '/resumes', icon: FileText },
+    {
+      label: user?.role === 'CONSULTANT' ? 'My Consultations' : 'Consultations',
+      href: '/consultations',
+      icon: CalendarCheck,
+    },
+    ...(user?.role === 'ADMIN'
+      ? [{ label: 'User Management', href: '/admin/users', icon: ShieldCheck }]
+      : []),
+  ];
 
   const handleMobileNavClick = () => {
     if (typeof window !== 'undefined' && window.innerWidth < 768 && onClose) {
@@ -99,16 +110,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
                 <span>Create Resume</span>
               </span>
             </Link>
-            <Link
-              href="/consultations/book"
-              onClick={handleMobileNavClick}
-              className="flex items-center justify-between px-3 py-2 rounded-lg text-xs text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition"
-            >
-              <span className="flex items-center gap-2">
-                <CalendarCheck className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Book Consultant</span>
-              </span>
-            </Link>
+            {user?.role === 'CONSULTANT' ? (
+              <Link
+                href="/consultations"
+                onClick={handleMobileNavClick}
+                className="flex items-center justify-between px-3 py-2 rounded-lg text-xs text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition"
+              >
+                <span className="flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5 text-amber-500" />
+                  <span>My Consultations</span>
+                </span>
+              </Link>
+            ) : (
+              <Link
+                href="/consultations/book"
+                onClick={handleMobileNavClick}
+                className="flex items-center justify-between px-3 py-2 rounded-lg text-xs text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition"
+              >
+                <span className="flex items-center gap-2">
+                  <CalendarCheck className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Book Consultant</span>
+                </span>
+              </Link>
+            )}
           </div>
         </div>
       </div>

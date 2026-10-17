@@ -105,4 +105,48 @@ export class AuthController {
       next(error);
     }
   }
+
+  static async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { email } = req.body;
+      const result = await AuthService.forgotPassword(email);
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.resetToken ? { resetToken: result.resetToken } : undefined,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { token, password } = req.body;
+      await AuthService.resetPassword(token, password);
+      res.status(200).json({
+        success: true,
+        message: 'Password has been reset successfully. You may now log in with your new password.',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async verifyEmail(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const token = (req.query.token as string) || req.body?.token;
+      if (!token) {
+        res.status(400).json({ success: false, message: 'Verification token is required' });
+        return;
+      }
+      await AuthService.verifyEmail(token);
+      res.status(200).json({
+        success: true,
+        message: 'Email verified successfully. Your account is active.',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

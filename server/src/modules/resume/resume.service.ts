@@ -197,12 +197,18 @@ export class ResumeService {
     yearsOfExperience?: number;
     rawSkills?: string[];
     userBio?: string;
+    targetIndustry?: string;
+    keyAchievements?: string;
+    educationContext?: string;
     model?: string;
   }) {
     const prompt = `
-Generate a structured, ATS-optimized resume in JSON format for a "${promptData.targetRole}" with ${promptData.yearsOfExperience || 3} years of experience.
+Generate a structured, ATS-optimized resume in JSON format for a "${promptData.targetRole}" with ${promptData.yearsOfExperience ?? 3} years of experience.
 Candidate notes: ${promptData.userBio || 'Skilled professional'}.
 Required skills context: ${(promptData.rawSkills || []).join(', ')}.
+${promptData.targetIndustry ? `Target Industry / Domain: ${promptData.targetIndustry}.` : ''}
+${promptData.keyAchievements ? `Key Accomplishments to integrate: ${promptData.keyAchievements}.` : ''}
+${promptData.educationContext ? `Education Context: ${promptData.educationContext}.` : ''}
 Return strictly a valid JSON object matching this schema:
 {
   "summary": "string",

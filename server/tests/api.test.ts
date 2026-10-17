@@ -100,6 +100,54 @@ describe('CareerForge API Test Suite', () => {
       expect(res.status).toBe(200);
       expect(res.body.data.user.email).toBe(testEmail);
     });
+
+    it('should dispatch password reset and reset password with token', async () => {
+      const forgotRes = await request(app)
+        .post('/api/auth/forgot-password')
+        .send({ email: testEmail });
+
+      expect(forgotRes.status).toBe(200);
+      expect(forgotRes.body.success).toBe(true);
+
+      const user = await User.findOne({ email: testEmail });
+      expect(user?.resetPasswordToken).toBeDefined();
+
+      const resetRes = await request(app)
+        .post('/api/auth/reset-password')
+        .send({
+          token: user!.resetPasswordToken,
+          password: 'NewPassword123!',
+        });
+
+      expect(resetRes.status).toBe(200);
+      expect(resetRes.body.success).toBe(true);
+
+      // Verify login works with new password
+      const loginRes = await request(app)
+        .post('/api/auth/login')
+        .send({
+          email: testEmail,
+          password: 'NewPassword123!',
+        });
+
+      expect(loginRes.status).toBe(200);
+      expect(loginRes.body.data.tokens.accessToken).toBeDefined();
+      authToken = loginRes.body.data.tokens.accessToken;
+    });
+
+    it('should verify user email via token', async () => {
+      const user = await User.findOne({ email: testEmail });
+      expect(user?.emailVerificationToken).toBeDefined();
+
+      const verifyRes = await request(app)
+        .get(`/api/auth/verify-email?token=${user!.emailVerificationToken}`);
+
+      expect(verifyRes.status).toBe(200);
+      expect(verifyRes.body.success).toBe(true);
+
+      const updatedUser = await User.findOne({ email: testEmail });
+      expect(updatedUser?.isVerified).toBe(true);
+    });
   });
 
   describe('3. AI Chat Sessions', () => {
