@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { AppShell } from '../../components/layout/AppShell';
-import { api, getValidAccessToken, refreshAccessToken } from '../../lib/api';
+import { api, getValidAccessToken, refreshAccessToken, API_BASE_URL } from '../../lib/api';
 import {
   MessageSquare,
   Plus,
@@ -160,9 +160,8 @@ export default function ChatPage() {
 
     try {
       let token = await getValidAccessToken();
-      const apiBase = process.env.Server_API_URL || 'http://localhost:5000/api';
 
-      let response = await fetch(`${apiBase}/chat/sessions/${targetSessionId}/stream`, {
+      let response = await fetch(`${API_BASE_URL}/chat/sessions/${targetSessionId}/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -173,7 +172,7 @@ export default function ChatPage() {
 
       if (response.status === 401) {
         token = await refreshAccessToken();
-        response = await fetch(`${apiBase}/chat/sessions/${targetSessionId}/stream`, {
+        response = await fetch(`${API_BASE_URL}/chat/sessions/${targetSessionId}/stream`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

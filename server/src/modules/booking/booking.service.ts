@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { Booking, Consultant, BookingStatus, IBooking } from './booking.model.js';
+import { User } from '../auth/user.model.js';
 import { cacheDel } from '../../config/redis.js';
 
 export class BookingService {
@@ -149,13 +150,32 @@ export class BookingService {
   }
 
   static async getConsultantByUserIdOrEmail(userId: string, email?: string) {
-    let consultant = await Consultant.findOne({ userId: new mongoose.Types.ObjectId(userId) });
-    if (!consultant && email) {
-      consultant = await Consultant.findOne({ email: email.toLowerCase() });
-      if (consultant && !consultant.userId) {
-        consultant.userId = new mongoose.Types.ObjectId(userId);
-        await consultant.save();
+    let consultant = await Consultant.findOne({
+      $or: [
+        { userId: new mongoose.Types.ObjectId(userId) },
+        ...(email ? [{ email: email.toLowerCase() }] : []),
+      ],
+    });
+
+    if (!consultant && (userId || email)) {
+      const user = await User.findById(userId);
+      if (user && user.role === 'CONSULTANT') {
+        consultant = await Consultant.create({
+          userId: user._id,
+          name: user.name,
+          email: user.email.toLowerCase(),
+          specialty: 'Career Consultant & Technical Mentor',
+          hourlyRate: 75,
+          bio: 'Experienced mentor specializing in resume refinement, mock interviews, and career navigation.',
+          availableDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+          slots: ['10:00', '13:00', '15:00', '17:00'],
+          isActive: true,
+        });
+        await cacheDel('consultants:list');
       }
+    } else if (consultant && !consultant.userId) {
+      consultant.userId = new mongoose.Types.ObjectId(userId);
+      await consultant.save();
     }
     return consultant;
   }
@@ -213,12 +233,16 @@ export class BookingService {
     if (role === 'ADMIN') {
       // Admin sees all platform bookings
     } else if (role === 'CONSULTANT') {
-      // Consultant sees bookings where they are the consultant
+      // Consultant sees strictly only bookings where they are the assigned consultant
       const consultant = await this.getConsultantByUserIdOrEmail(userId, userEmail);
       if (consultant) {
         filter.consultantId = consultant._id;
       } else {
-        filter.userId = new mongoose.Types.ObjectId(userId);
+        // If no consultant document, return empty list (never leak other bookings)
+        return {
+          items: [],
+          pagination: { page, limit, total: 0, totalPages: 1 },
+        };
       }
     } else {
       // Candidates see only their own bookings
