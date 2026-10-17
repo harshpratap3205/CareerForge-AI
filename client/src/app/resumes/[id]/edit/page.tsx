@@ -93,6 +93,15 @@ export default function EditResumePage() {
     }
   }, [editor, resume]);
 
+  useEffect(() => {
+    if (saveStatus === 'saved') {
+      const t = setTimeout(() => {
+        setSaveStatus('idle');
+      }, 3500);
+      return () => clearTimeout(t);
+    }
+  }, [saveStatus]);
+
   const handleSave = async (silent = false, currentEditor = editor) => {
     if (!currentEditor) return;
     if (!silent) setSaving(true);
@@ -102,11 +111,14 @@ export default function EditResumePage() {
       const html = currentEditor.getHTML();
       const json = currentEditor.getJSON();
 
-      const res = await api.put(`/resumes/${id}`, {
-        templateId,
-        tiptapHtml: html,
-        tiptapContent: json,
-      });
+      const [res] = await Promise.all([
+        api.put(`/resumes/${id}`, {
+          templateId,
+          tiptapHtml: html,
+          tiptapContent: json,
+        }),
+        new Promise((resolve) => setTimeout(resolve, 500)),
+      ]);
 
       if (res.data?.data?.resume) {
         setResume(res.data.data.resume);
@@ -339,12 +351,17 @@ export default function EditResumePage() {
 
         <div
           onClick={() => editor?.chain().focus().run()}
-          className={`bg-white border border-neutral-200 rounded-xl p-8 min-h-[600px] cursor-text transition-all ${
+          className={`bg-white border border-neutral-200 rounded-xl p-8 min-h-[600px] cursor-text transition-all relative overflow-hidden ${
             templateId === 'ats-classic'
               ? 'font-serif text-black max-w-3xl mx-auto'
               : 'font-sans text-neutral-800 max-w-4xl mx-auto'
           }`}
         >
+          {/* Top animated saving progress bar */}
+          {saveStatus === 'saving' && (
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-indigo-600 to-amber-400 animate-pulse" />
+          )}
+
           <EditorContent editor={editor} />
         </div>
 
@@ -431,6 +448,21 @@ export default function EditResumePage() {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Floating Save/Loading Status Indicator */}
+        {saveStatus === 'saving' && (
+          <div className="fixed bottom-6 right-6 z-40 flex items-center gap-2.5 px-4 py-2.5 bg-neutral-900/95 backdrop-blur-xs text-white text-xs font-semibold rounded-full shadow-2xl border border-neutral-700 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+            <span>Saving edits to cloud...</span>
+          </div>
+        )}
+
+        {saveStatus === 'saved' && (
+          <div className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-2 bg-emerald-950/95 backdrop-blur-xs text-emerald-200 text-xs font-medium rounded-full shadow-xl border border-emerald-800 animate-in fade-in duration-200">
+            <CheckCircle className="w-4 h-4 text-emerald-400" />
+            <span>Edits saved successfully</span>
           </div>
         )}
       </div>
