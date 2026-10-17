@@ -26,6 +26,7 @@ import {
   AlertCircle,
   ExternalLink,
   Calendar,
+  X,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -38,6 +39,15 @@ export default function DashboardPage() {
   const [hourlyRate, setHourlyRate] = useState<number>(75);
   const [specialty, setSpecialty] = useState<string>('');
   const [bio, setBio] = useState<string>('');
+  const [slots, setSlots] = useState<string[]>(['09:00', '11:00', '14:00', '16:00']);
+  const [availableDays, setAvailableDays] = useState<string[]>([
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+  ]);
+  const [newSlotTime, setNewSlotTime] = useState<string>('');
   const [savingConsultant, setSavingConsultant] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -74,6 +84,12 @@ export default function DashboardPage() {
             setHourlyRate(c.hourlyRate || 75);
             setSpecialty(c.specialty || '');
             setBio(c.bio || '');
+            if (Array.isArray(c.slots) && c.slots.length > 0) {
+              setSlots(c.slots);
+            }
+            if (Array.isArray(c.availableDays) && c.availableDays.length > 0) {
+              setAvailableDays(c.availableDays);
+            }
           }
         } else if (user?.role === 'ADMIN') {
           // Load platform-wide admin data
@@ -110,6 +126,34 @@ export default function DashboardPage() {
     }
   }, [user]);
 
+  const handleAddSlot = (slotToAdd?: string) => {
+    const slot = (slotToAdd || newSlotTime).trim();
+    if (!slot) return;
+    if (slots.includes(slot)) {
+      setNewSlotTime('');
+      return;
+    }
+    const updated = [...slots, slot].sort();
+    setSlots(updated);
+    setNewSlotTime('');
+  };
+
+  const handleRemoveSlot = (slotToRemove: string) => {
+    setSlots(slots.filter((s) => s !== slotToRemove));
+  };
+
+  const handleToggleDay = (day: string) => {
+    if (availableDays.includes(day)) {
+      if (availableDays.length > 1) {
+        setAvailableDays(availableDays.filter((d) => d !== day));
+      }
+    } else {
+      const allWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      const updated = [...availableDays, day].sort((a, b) => allWeek.indexOf(a) - allWeek.indexOf(b));
+      setAvailableDays(updated);
+    }
+  };
+
   const handleSaveConsultantProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingConsultant(true);
@@ -120,6 +164,8 @@ export default function DashboardPage() {
         hourlyRate: Number(hourlyRate),
         specialty: specialty.trim(),
         bio: bio.trim(),
+        slots,
+        availableDays,
       });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
@@ -141,9 +187,6 @@ export default function DashboardPage() {
     }
   };
 
-  // -------------------------------------------------------------
-  // 1. CONSULTANT DASHBOARD
-  // -------------------------------------------------------------
   if (user?.role === 'CONSULTANT') {
     return (
       <AppShell>
@@ -305,13 +348,110 @@ export default function DashboardPage() {
                 />
               </div>
 
+              {/* Consultation Days */}
+              <div>
+                <label className="block text-xs font-bold text-neutral-700 mb-1.5">
+                  Available Consultation Days
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => {
+                    const isActive = availableDays.includes(day);
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => handleToggleDay(day)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition cursor-pointer ${
+                          isActive
+                            ? 'bg-neutral-900 text-white border-neutral-900 shadow-2xs'
+                            : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:border-neutral-300'
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Time Slots Management */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-neutral-700">
+                    Available Time Slots ({slots.length} active)
+                  </label>
+                  <span className="text-[11px] text-neutral-500">
+                    Candidates will book 60-min sessions within these slots
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  {slots.map((slot) => (
+                    <span
+                      key={slot}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs"
+                    >
+                      <Clock className="w-3.5 h-3.5" />
+                      {slot}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSlot(slot)}
+                        className="text-indigo-400 hover:text-indigo-700 ml-0.5 cursor-pointer"
+                        title={`Remove ${slot} slot`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                  {slots.length === 0 && (
+                    <span className="text-xs text-amber-700 bg-amber-50 px-2.5 py-1 rounded border border-amber-200">
+                      No slots configured. Please add at least one slot.
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="time"
+                      value={newSlotTime}
+                      onChange={(e) => setNewSlotTime(e.target.value)}
+                      className="px-3 py-1.5 border border-neutral-300 rounded-lg text-xs text-neutral-900 bg-white focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleAddSlot()}
+                      disabled={!newSlotTime}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-semibold rounded-lg transition disabled:opacity-40 cursor-pointer border border-neutral-300"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add Slot
+                    </button>
+                  </div>
+
+                  <span className="text-xs text-neutral-400 hidden sm:inline">| Quick Add:</span>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => handleAddSlot(preset)}
+                        disabled={slots.includes(preset)}
+                        className="px-2 py-1 text-[11px] font-medium rounded border border-neutral-200 hover:border-neutral-300 text-neutral-600 hover:text-neutral-900 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+                      >
+                        +{preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 disabled={savingConsultant}
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold rounded-lg transition disabled:opacity-60 shadow-xs cursor-pointer"
               >
                 <Save className="w-3.5 h-3.5" />
-                {savingConsultant ? 'Saving Changes...' : 'Update My Rates & Profile'}
+                {savingConsultant ? 'Saving Changes...' : 'Update My Rates, Slots & Profile'}
               </button>
             </form>
           </div>
@@ -403,9 +543,6 @@ export default function DashboardPage() {
     );
   }
 
-  // -------------------------------------------------------------
-  // 2. ADMIN DASHBOARD
-  // -------------------------------------------------------------
   if (user?.role === 'ADMIN') {
     return (
       <AppShell>
@@ -661,9 +798,6 @@ export default function DashboardPage() {
     );
   }
 
-  // -------------------------------------------------------------
-  // 3. CANDIDATE / USER DASHBOARD
-  // -------------------------------------------------------------
   return (
     <AppShell>
       <div className="space-y-6 max-w-6xl mx-auto pb-12">

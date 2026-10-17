@@ -1,13 +1,28 @@
 import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 import { Booking, Consultant, BookingStatus, IBooking } from './booking.model.js';
 import { User } from '../auth/user.model.js';
 import { cacheDel } from '../../config/redis.js';
 
 export class BookingService {
   static async seedConsultantsIfEmpty() {
-    const sarah = await Consultant.findOne({ email: 'sarah.jenkins@careerforge.ai' });
+    const defaultPassword = 'Consultant@123';
+    const passwordHash = await bcrypt.hash(defaultPassword, 10);
+
+    let sarahUser = await User.findOne({ email: 'sarah.jenkins@careerforge.ai' });
+    if (!sarahUser) {
+      sarahUser = await User.create({
+        name: 'Sarah Jenkins',
+        email: 'sarah.jenkins@careerforge.ai',
+        passwordHash,
+        role: 'CONSULTANT',
+      });
+    }
+
+    let sarah = await Consultant.findOne({ email: 'sarah.jenkins@careerforge.ai' });
     if (!sarah) {
       await Consultant.create({
+        userId: sarahUser._id,
         name: 'Sarah Jenkins',
         email: 'sarah.jenkins@careerforge.ai',
         specialty: 'FAANG Tech Lead & Resume Reviewer',
@@ -17,11 +32,25 @@ export class BookingService {
         slots: ['10:00', '13:00', '15:00', '17:00'],
         isActive: true,
       });
+    } else if (!sarah.userId) {
+      sarah.userId = sarahUser._id;
+      await sarah.save();
     }
 
-    const david = await Consultant.findOne({ email: 'david.chen@careerforge.ai' });
+    let davidUser = await User.findOne({ email: 'david.chen@careerforge.ai' });
+    if (!davidUser) {
+      davidUser = await User.create({
+        name: 'David Chen',
+        email: 'david.chen@careerforge.ai',
+        passwordHash,
+        role: 'CONSULTANT',
+      });
+    }
+
+    let david = await Consultant.findOne({ email: 'david.chen@careerforge.ai' });
     if (!david) {
       await Consultant.create({
+        userId: davidUser._id,
         name: 'David Chen',
         email: 'david.chen@careerforge.ai',
         specialty: 'Executive Recruiter & Career Coach',
@@ -31,6 +60,9 @@ export class BookingService {
         slots: ['09:00', '11:00', '14:00', '16:00'],
         isActive: true,
       });
+    } else if (!david.userId) {
+      david.userId = davidUser._id;
+      await david.save();
     }
   }
 
@@ -204,8 +236,12 @@ export class BookingService {
     }
     if (data.specialty) consultant.specialty = data.specialty.trim();
     if (data.bio !== undefined) consultant.bio = data.bio.trim();
-    if (Array.isArray(data.availableDays)) consultant.availableDays = data.availableDays;
-    if (Array.isArray(data.slots)) consultant.slots = data.slots;
+    if (Array.isArray(data.availableDays)) {
+      consultant.availableDays = Array.from(new Set(data.availableDays.map((d: any) => String(d).trim()).filter(Boolean)));
+    }
+    if (Array.isArray(data.slots)) {
+      consultant.slots = Array.from(new Set(data.slots.map((s: any) => String(s).trim()).filter(Boolean))).sort();
+    }
     if (data.isActive !== undefined) consultant.isActive = Boolean(data.isActive);
 
     const updated = await consultant.save();
@@ -231,21 +267,18 @@ export class BookingService {
 
     const filter: any = {};
     if (role === 'ADMIN') {
-      // Admin sees all platform bookings
+      // no filter
     } else if (role === 'CONSULTANT') {
-      // Consultant sees strictly only bookings where they are the assigned consultant
       const consultant = await this.getConsultantByUserIdOrEmail(userId, userEmail);
       if (consultant) {
         filter.consultantId = consultant._id;
       } else {
-        // If no consultant document, return empty list (never leak other bookings)
         return {
           items: [],
           pagination: { page, limit, total: 0, totalPages: 1 },
         };
       }
     } else {
-      // Candidates see only their own bookings
       filter.userId = new mongoose.Types.ObjectId(userId);
     }
 

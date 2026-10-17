@@ -11,6 +11,7 @@ export default function ResumePreviewPage() {
   const id = params?.id as string;
   const [resume, setResume] = useState<any>(null);
   const [showHtml, setShowHtml] = useState(false);
+  const [switching, setSwitching] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -19,6 +20,22 @@ export default function ResumePreviewPage() {
       });
     }
   }, [id]);
+
+  const handleTemplateSwitch = async (newTemplate: 'modern' | 'ats-classic') => {
+    if (resume?.templateId === newTemplate || switching) return;
+    setSwitching(true);
+    try {
+      const res = await api.put(`/resumes/${id}`, {
+        templateId: newTemplate,
+        reRenderTemplate: true,
+      });
+      setResume(res.data.data.resume);
+    } catch (err) {
+      console.error('Failed to change template:', err);
+    } finally {
+      setSwitching(false);
+    }
+  };
 
   if (!resume) {
     return (
@@ -39,13 +56,31 @@ export default function ResumePreviewPage() {
         </Link>
 
         <div className="flex items-center gap-2">
-          <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
-            resume.templateId === 'ats-classic'
-              ? 'bg-neutral-100 text-neutral-800 border-neutral-300'
-              : 'bg-indigo-50 text-indigo-700 border-indigo-200'
-          }`}>
-            {resume.templateId === 'ats-classic' ? 'ATS Classic (Standard)' : 'Modern Professional'}
-          </span>
+          <div className="inline-flex items-center bg-gray-200/80 p-0.5 rounded-lg text-xs font-semibold">
+            <button
+              onClick={() => handleTemplateSwitch('modern')}
+              disabled={switching}
+              className={`px-3 py-1.5 rounded-md transition cursor-pointer ${
+                resume.templateId !== 'ats-classic'
+                  ? 'bg-white text-indigo-700 shadow-2xs font-bold'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Modern Professional
+            </button>
+            <button
+              onClick={() => handleTemplateSwitch('ats-classic')}
+              disabled={switching}
+              className={`px-3 py-1.5 rounded-md transition cursor-pointer ${
+                resume.templateId === 'ats-classic'
+                  ? 'bg-neutral-900 text-white shadow-2xs font-bold'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              ATS Classic (Monochrome)
+            </button>
+          </div>
+
           <button
             onClick={() => setShowHtml(!showHtml)}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-700 bg-white border border-gray-200 px-3 py-2 rounded-lg shadow-xs hover:bg-gray-50 transition cursor-pointer"

@@ -67,7 +67,11 @@ export class ResumeService {
     return saved;
   }
 
-  static async updateResume(id: string, userId: string, updateData: Partial<IResume>) {
+  static async updateResume(
+    id: string,
+    userId: string,
+    updateData: Partial<IResume> & { reRenderTemplate?: boolean }
+  ) {
     const resume = await Resume.findOne({
       _id: new mongoose.Types.ObjectId(id),
       userId: new mongoose.Types.ObjectId(userId),
@@ -79,17 +83,21 @@ export class ResumeService {
       throw err;
     }
 
+    const templateChanged = Boolean(updateData.templateId && updateData.templateId !== resume.templateId);
     if (updateData.templateId) {
       resume.templateId = updateData.templateId;
     }
 
-    if (updateData.tiptapHtml) {
+    if (updateData.reRenderTemplate || (templateChanged && !updateData.tiptapHtml)) {
+      resume.tiptapHtml = ResumeTemplateEngine.render(resume, resume.templateId);
+    } else if (updateData.tiptapHtml) {
       resume.tiptapHtml = updateData.tiptapHtml;
     } else if (!resume.tiptapHtml) {
       resume.tiptapHtml = ResumeTemplateEngine.render(resume, resume.templateId);
     }
 
-    Object.assign(resume, updateData);
+    const { reRenderTemplate, ...dataToAssign } = updateData;
+    Object.assign(resume, dataToAssign);
 
     const nextVer = (resume.versions?.length || 0) + 1;
     resume.versions.push({

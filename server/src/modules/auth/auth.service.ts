@@ -73,7 +73,6 @@ export class AuthService {
     user.refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 8);
     await user.save();
 
-    // If registering as a CONSULTANT, automatically provision their profile in the Consultants collection
     if (assignedRole === 'CONSULTANT') {
       const existingConsultant = await Consultant.findOne({ email: data.email.toLowerCase() });
       if (!existingConsultant) {

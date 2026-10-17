@@ -16,7 +16,6 @@ export class DashboardService {
 
     const uId = new mongoose.Types.ObjectId(userId);
 
-    // 1. ADMIN ROLE STATS
     if (role === 'ADMIN') {
       const [
         totalUsers,
@@ -69,7 +68,6 @@ export class DashboardService {
       return { ...data, source: 'database' };
     }
 
-    // 2. CONSULTANT ROLE STATS
     if (role === 'CONSULTANT') {
       let consultant = await Consultant.findOne({
         $or: [{ userId: uId }, { email: email?.toLowerCase() }],
@@ -137,7 +135,6 @@ export class DashboardService {
       return { ...data, source: 'database' };
     }
 
-    // 3. CANDIDATE / USER ROLE STATS
     const [resumeCount, chatCount, bookingStats] = await Promise.all([
       Resume.countDocuments({ userId: uId }),
       ChatSession.countDocuments({ userId: uId }),

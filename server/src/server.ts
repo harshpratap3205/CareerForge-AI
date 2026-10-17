@@ -8,7 +8,6 @@ import { AuthService } from './modules/auth/auth.service.js';
 const startServer = async () => {
   await connectDB();
   await BookingService.seedConsultantsIfEmpty();
-  await AuthService.seedAdminIfEmpty();
 
   app.listen(config.port, () => {
     console.log(`CareerForge Server running on port ${config.port} in ${config.nodeEnv} mode`);
