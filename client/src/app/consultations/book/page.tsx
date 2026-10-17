@@ -50,7 +50,10 @@ export default function BookConsultationPage() {
     const fetchConsultants = async () => {
       try {
         const res = await api.get('/bookings/consultants');
-        const list = res.data.data.consultants;
+        const rawList: Consultant[] = res.data.data.consultants || [];
+        const list = rawList.filter(
+          (c: any) => !c.name?.toLowerCase().includes('alex') && !c.email?.endsWith('.test')
+        );
         setConsultants(list);
         if (list.length > 0) {
           setSelectedConsultantId(list[0]._id);

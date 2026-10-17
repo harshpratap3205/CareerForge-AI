@@ -38,9 +38,43 @@ export class BookingController {
       const result = await BookingService.getPaginatedBookings(
         req.user!.userId,
         req.user!.role,
+        req.user?.email,
         req.query
       );
       res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getMyConsultantProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const consultant = await BookingService.getConsultantByUserIdOrEmail(
+        req.user!.userId,
+        req.user?.email
+      );
+      if (!consultant) {
+        res.status(404).json({ success: false, message: 'Consultant profile not found' });
+        return;
+      }
+      res.status(200).json({ success: true, data: { consultant } });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateMyConsultantProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const updated = await BookingService.updateConsultantProfile(
+        req.user!.userId,
+        req.user!.email,
+        req.body
+      );
+      res.status(200).json({
+        success: true,
+        message: 'Consultant profile updated successfully',
+        data: { consultant: updated },
+      });
     } catch (error) {
       next(error);
     }

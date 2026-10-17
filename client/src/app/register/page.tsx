@@ -4,14 +4,14 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api } from '../../lib/api';
-import { AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, Loader2, User, Briefcase } from 'lucide-react';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<'USER' | 'CONSULTANT'>('USER');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -28,7 +28,7 @@ export default function RegisterPage() {
         password,
         role,
       });
-      // Redirect to login page with registered query param so the user logs in from /login
+      // Redirect to login page with registered query param
       router.push('/login?registered=true');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to create account. Please try again.');
@@ -41,10 +41,9 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-neutral-50/80 px-4 py-8">
       <div className="max-w-sm w-full bg-white p-8 rounded-xl border border-neutral-200 shadow-sm">
         <div className="flex items-center gap-2 mb-6">
-          <div className="w-7 h-7 bg-neutral-900 rounded-lg flex items-center justify-center text-white text-[11px] font-bold shadow-xs">
-            CF
-          </div>
-          <span className="font-semibold text-sm text-neutral-900 tracking-tight">CareerForge AI</span>
+          <Link href="/" className="font-bold text-lg tracking-tight text-neutral-900">
+            CareerForge <span className="text-indigo-600 font-bold">AI</span>
+          </Link>
         </div>
 
         <h1 className="text-xl font-semibold text-neutral-900 mb-1">Create an account</h1>
@@ -59,6 +58,41 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
+            <label className="block text-xs font-medium text-neutral-700 mb-1.5">I am registering as</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setRole('USER')}
+                className={`py-2 px-3 text-xs font-semibold rounded-lg border flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                  role === 'USER'
+                    ? 'border-neutral-900 bg-neutral-900 text-white shadow-xs'
+                    : 'border-neutral-200 bg-neutral-50 text-neutral-700 hover:bg-neutral-100'
+                }`}
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>Candidate</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole('CONSULTANT')}
+                className={`py-2 px-3 text-xs font-semibold rounded-lg border flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                  role === 'CONSULTANT'
+                    ? 'border-neutral-900 bg-neutral-900 text-white shadow-xs'
+                    : 'border-neutral-200 bg-neutral-50 text-neutral-700 hover:bg-neutral-100'
+                }`}
+              >
+                <Briefcase className="w-3.5 h-3.5" />
+                <span>Consultant</span>
+              </button>
+            </div>
+            <p className="text-[10px] text-neutral-400 mt-1">
+              {role === 'USER'
+                ? 'Access AI Career Advisor, ATS Resume Builder, and book mock interviews.'
+                : 'Offer 1-on-1 mentorship, manage your pay rate, and host Google Meet sessions.'}
+            </p>
+          </div>
+
+          <div>
             <label className="block text-xs font-medium text-neutral-700 mb-1">Full Name</label>
             <input
               type="text"
@@ -67,7 +101,7 @@ export default function RegisterPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 transition"
-              placeholder="Alex Johnson"
+              placeholder="John Doe"
             />
           </div>
 
@@ -108,18 +142,6 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-neutral-700 mb-1">Account Role</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as any)}
-              className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs text-neutral-900 bg-white focus:outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 transition"
-            >
-              <option value="USER">Candidate / Job Seeker</option>
-              <option value="CONSULTANT">Career Consultant</option>
-            </select>
-          </div>
-
           <button
             type="submit"
             disabled={loading}
@@ -131,7 +153,7 @@ export default function RegisterPage() {
                 <span>Creating Account...</span>
               </>
             ) : (
-              'Create Account'
+              `Create ${role === 'CONSULTANT' ? 'Consultant' : 'Candidate'} Account`
             )}
           </button>
         </form>

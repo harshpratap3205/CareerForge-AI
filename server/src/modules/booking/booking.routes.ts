@@ -6,6 +6,8 @@ const router = Router();
 
 router.use(authenticate);
 
+router.get('/consultant-profile', BookingController.getMyConsultantProfile);
+router.put('/consultant-profile', BookingController.updateMyConsultantProfile);
 router.get('/consultants', BookingController.getConsultants);
 router.get('/consultants/:id', BookingController.getConsultantById);
 

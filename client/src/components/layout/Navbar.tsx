@@ -80,7 +80,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
                   {user.name}
                 </span>
                 <span className="text-[10px] text-neutral-500 font-medium">
-                  {user.role === 'CONSULTANT' ? 'Career Consultant' : 'Candidate'}
+                  {user.role === 'ADMIN'
+                    ? 'Platform Admin'
+                    : user.role === 'CONSULTANT'
+                    ? 'Career Consultant'
+                    : 'Candidate'}
                 </span>
               </div>
               <ChevronDown className="w-3.5 h-3.5 text-neutral-400" />

@@ -45,4 +45,39 @@ export class UserController {
       next(error);
     }
   }
+
+  static async getAllUsers(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const users = await User.find({})
+        .select('-passwordHash -refreshTokenHash -previousRefreshTokenHash')
+        .sort({ createdAt: -1 });
+      res.status(200).json({ success: true, data: { users } });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateUserRole(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { role } = req.body;
+      if (!['USER', 'CONSULTANT', 'ADMIN'].includes(role)) {
+        res.status(400).json({ success: false, message: 'Invalid role specified' });
+        return;
+      }
+      const user = await User.findByIdAndUpdate(
+        id,
+        { role },
+        { new: true }
+      ).select('-passwordHash -refreshTokenHash -previousRefreshTokenHash');
+
+      if (!user) {
+        res.status(404).json({ success: false, message: 'User not found' });
+        return;
+      }
+      res.status(200).json({ success: true, message: 'Role updated successfully', data: { user } });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

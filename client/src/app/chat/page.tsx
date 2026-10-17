@@ -265,11 +265,11 @@ export default function ChatPage() {
 
         <aside
           className={clsx(
-            'flex flex-col bg-neutral-50/60 border-r border-neutral-200 shrink-0 z-40 transition-transform duration-200 ease-in-out',
+            'flex flex-col bg-neutral-50/60 border-r border-neutral-200 shrink-0 transition-transform duration-200 ease-in-out',
             'w-68 sm:w-72',
             showMobileSessions
-              ? 'absolute inset-y-0 left-0 shadow-xl md:shadow-none md:static translate-x-0'
-              : 'hidden md:flex'
+              ? 'absolute inset-y-0 left-0 shadow-xl md:shadow-none md:static translate-x-0 z-20'
+              : 'hidden md:flex z-0'
           )}
         >
           <div className="p-3.5 border-b border-neutral-200 flex items-center justify-between bg-white">

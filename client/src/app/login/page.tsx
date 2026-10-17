@@ -44,10 +44,9 @@ function LoginForm() {
   return (
     <div className="max-w-sm w-full bg-white p-8 rounded-xl border border-neutral-200 shadow-sm">
       <div className="flex items-center gap-2 mb-6">
-        <div className="w-7 h-7 bg-neutral-900 rounded-lg flex items-center justify-center text-white text-[11px] font-bold shadow-xs">
-          CF
-        </div>
-        <span className="font-semibold text-sm text-neutral-900 tracking-tight">CareerForge AI</span>
+        <Link href="/" className="font-bold text-lg tracking-tight text-neutral-900">
+          CareerForge <span className="text-indigo-600 font-bold">AI</span>
+        </Link>
       </div>
 
       <h1 className="text-xl font-semibold text-neutral-900 mb-1">Sign in to your account</h1>

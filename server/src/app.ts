@@ -39,7 +39,7 @@ app.post(
 
 app.use(
   express.json({
-    verify: (req: any, _res, buf) => {
+    verify: (req: any, _res: express.Response, buf: Buffer) => {
       req.rawBody = buf;
     },
   })
@@ -48,7 +48,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 app.use(globalLimiter);
 
-app.get('/health', (req, res) => {
+app.get('/health', (req: express.Request, res: express.Response) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 

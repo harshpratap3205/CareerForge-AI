@@ -168,65 +168,67 @@ export default function ConsultationsListPage() {
           </div>
         ) : (
           <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-xs">
-            <table className="w-full text-left text-xs text-gray-600 border-collapse">
-              <thead className="bg-gray-50/70 border-b border-gray-200 text-gray-500 uppercase tracking-wider font-semibold">
-                <tr>
-                  <th className="py-3 px-4">Consultant</th>
-                  <th className="py-3 px-4">Date & Time</th>
-                  <th className="py-3 px-4">Meeting Agenda</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {bookings.map((b) => (
-                  <tr key={b._id} className="hover:bg-gray-50/50 transition">
-                    <td className="py-4 px-4">
-                      <div className="font-semibold text-gray-900">{b.consultantId?.name || 'Expert'}</div>
-                      <div className="text-gray-400 text-2xs">{b.consultantId?.specialty}</div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="font-medium text-gray-900 flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-gray-400" /> {b.date}
-                      </div>
-                      <div className="text-gray-400 flex items-center gap-1.5 mt-0.5">
-                        <Clock className="w-3.5 h-3.5 text-gray-400" /> {b.timeSlot}
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 max-w-xs truncate">{b.meetingAgenda}</td>
-                    <td className="py-4 px-4">{getStatusBadge(b.status)}</td>
-                    <td className="py-4 px-4 text-right space-x-2">
-                      {b.meetingLink && b.status === 'CONFIRMED' && (
-                        <a
-                          href={b.meetingLink}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-2.5 py-1.5 rounded-lg font-semibold transition"
-                        >
-                          <Video className="w-3.5 h-3.5" /> Join Meet
-                        </a>
-                      )}
-                      {b.status === 'PENDING_PAYMENT' && (
-                        <Link
-                          href={`/consultations/success?booking_id=${b._id}`}
-                          className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 hover:bg-amber-100 px-2.5 py-1.5 rounded-lg font-semibold transition"
-                        >
-                          Complete Payment
-                        </Link>
-                      )}
-                      {['PENDING_PAYMENT', 'CONFIRMED'].includes(b.status) && (
-                        <button
-                          onClick={() => handleCancel(b._id)}
-                          className="text-gray-400 hover:text-red-600 transition"
-                        >
-                          Cancel
-                        </button>
-                      )}
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px] text-left text-xs text-gray-600 border-collapse">
+                <thead className="bg-gray-50/70 border-b border-gray-200 text-gray-500 uppercase tracking-wider font-semibold">
+                  <tr>
+                    <th className="py-3 px-4">Consultant</th>
+                    <th className="py-3 px-4">Date & Time</th>
+                    <th className="py-3 px-4">Meeting Agenda</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {bookings.map((b) => (
+                    <tr key={b._id} className="hover:bg-gray-50/50 transition">
+                      <td className="py-4 px-4 whitespace-nowrap">
+                        <div className="font-semibold text-gray-900">{b.consultantId?.name || 'Expert'}</div>
+                        <div className="text-gray-400 text-2xs">{b.consultantId?.specialty}</div>
+                      </td>
+                      <td className="py-4 px-4 whitespace-nowrap">
+                        <div className="font-medium text-gray-900 flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-gray-400" /> {b.date}
+                        </div>
+                        <div className="text-gray-400 flex items-center gap-1.5 mt-0.5">
+                          <Clock className="w-3.5 h-3.5 text-gray-400" /> {b.timeSlot}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 max-w-xs truncate">{b.meetingAgenda}</td>
+                      <td className="py-4 px-4 whitespace-nowrap">{getStatusBadge(b.status)}</td>
+                      <td className="py-4 px-4 text-right space-x-2 whitespace-nowrap">
+                        {b.meetingLink && b.status === 'CONFIRMED' && (
+                          <a
+                            href={b.meetingLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-2.5 py-1.5 rounded-lg font-semibold transition"
+                          >
+                            <Video className="w-3.5 h-3.5" /> Join Meet
+                          </a>
+                        )}
+                        {b.status === 'PENDING_PAYMENT' && (
+                          <Link
+                            href={`/consultations/success?booking_id=${b._id}`}
+                            className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 hover:bg-amber-100 px-2.5 py-1.5 rounded-lg font-semibold transition"
+                          >
+                            Complete Payment
+                          </Link>
+                        )}
+                        {['PENDING_PAYMENT', 'CONFIRMED'].includes(b.status) && (
+                          <button
+                            onClick={() => handleCancel(b._id)}
+                            className="text-gray-400 hover:text-red-600 transition"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
             {totalPages > 1 && (
               <div className="p-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">

@@ -4,30 +4,32 @@ import { cacheDel } from '../../config/redis.js';
 
 export class BookingService {
   static async seedConsultantsIfEmpty() {
-    const count = await Consultant.countDocuments();
-    if (count === 0) {
-      await Consultant.create([
-        {
-          name: 'Sarah Jenkins',
-          email: 'sarah.jenkins@careerforge.ai',
-          specialty: 'FAANG Tech Lead & Resume Reviewer',
-          hourlyRate: 75,
-          bio: 'Former Google Staff Engineer with 10+ years interviewing candidates.',
-          availableDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-          slots: ['10:00', '13:00', '15:00', '17:00'],
-          isActive: true,
-        },
-        {
-          name: 'David Chen',
-          email: 'david.chen@careerforge.ai',
-          specialty: 'Executive Recruiter & Career Coach',
-          hourlyRate: 60,
-          bio: 'Head of Talent at Silicon Valley venture studio. Placed 250+ senior engineers.',
-          availableDays: ['Tuesday', 'Wednesday', 'Thursday', 'Saturday'],
-          slots: ['09:00', '11:00', '14:00', '16:00'],
-          isActive: true,
-        },
-      ]);
+    const sarah = await Consultant.findOne({ email: 'sarah.jenkins@careerforge.ai' });
+    if (!sarah) {
+      await Consultant.create({
+        name: 'Sarah Jenkins',
+        email: 'sarah.jenkins@careerforge.ai',
+        specialty: 'FAANG Tech Lead & Resume Reviewer',
+        hourlyRate: 75,
+        bio: 'Former Google Staff Engineer with 10+ years interviewing candidates.',
+        availableDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        slots: ['10:00', '13:00', '15:00', '17:00'],
+        isActive: true,
+      });
+    }
+
+    const david = await Consultant.findOne({ email: 'david.chen@careerforge.ai' });
+    if (!david) {
+      await Consultant.create({
+        name: 'David Chen',
+        email: 'david.chen@careerforge.ai',
+        specialty: 'Executive Recruiter & Career Coach',
+        hourlyRate: 60,
+        bio: 'Head of Talent at Silicon Valley venture studio. Placed 250+ senior engineers.',
+        availableDays: ['Tuesday', 'Wednesday', 'Thursday', 'Saturday'],
+        slots: ['09:00', '11:00', '14:00', '16:00'],
+        isActive: true,
+      });
     }
   }
 
@@ -146,9 +148,55 @@ export class BookingService {
     return saved;
   }
 
+  static async getConsultantByUserIdOrEmail(userId: string, email?: string) {
+    let consultant = await Consultant.findOne({ userId: new mongoose.Types.ObjectId(userId) });
+    if (!consultant && email) {
+      consultant = await Consultant.findOne({ email: email.toLowerCase() });
+      if (consultant && !consultant.userId) {
+        consultant.userId = new mongoose.Types.ObjectId(userId);
+        await consultant.save();
+      }
+    }
+    return consultant;
+  }
+
+  static async updateConsultantProfile(
+    userId: string,
+    email: string,
+    data: {
+      hourlyRate?: number;
+      specialty?: string;
+      bio?: string;
+      availableDays?: string[];
+      slots?: string[];
+      isActive?: boolean;
+    }
+  ) {
+    let consultant = await this.getConsultantByUserIdOrEmail(userId, email);
+    if (!consultant) {
+      const err: any = new Error('Consultant profile not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (data.hourlyRate !== undefined && Number(data.hourlyRate) > 0) {
+      consultant.hourlyRate = Number(data.hourlyRate);
+    }
+    if (data.specialty) consultant.specialty = data.specialty.trim();
+    if (data.bio !== undefined) consultant.bio = data.bio.trim();
+    if (Array.isArray(data.availableDays)) consultant.availableDays = data.availableDays;
+    if (Array.isArray(data.slots)) consultant.slots = data.slots;
+    if (data.isActive !== undefined) consultant.isActive = Boolean(data.isActive);
+
+    const updated = await consultant.save();
+    await cacheDel('consultants:list');
+    return updated;
+  }
+
   static async getPaginatedBookings(
     userId: string,
     role: string,
+    userEmail: string | undefined,
     query: {
       page?: number;
       limit?: number;
@@ -162,7 +210,18 @@ export class BookingService {
     const skip = (page - 1) * limit;
 
     const filter: any = {};
-    if (role !== 'ADMIN') {
+    if (role === 'ADMIN') {
+      // Admin sees all platform bookings
+    } else if (role === 'CONSULTANT') {
+      // Consultant sees bookings where they are the consultant
+      const consultant = await this.getConsultantByUserIdOrEmail(userId, userEmail);
+      if (consultant) {
+        filter.consultantId = consultant._id;
+      } else {
+        filter.userId = new mongoose.Types.ObjectId(userId);
+      }
+    } else {
+      // Candidates see only their own bookings
       filter.userId = new mongoose.Types.ObjectId(userId);
     }
 

@@ -19,6 +19,7 @@ import {
   Heading2,
   ExternalLink,
   CheckCircle,
+  ArrowLeft,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -130,22 +131,34 @@ export default function EditResumePage() {
     <AppShell>
       <div className="space-y-4 max-w-5xl mx-auto pb-12">
         <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl border border-neutral-200">
-          <div>
-            <h1 className="text-lg font-bold text-neutral-900 truncate">
-              {resume?.title || 'Resume Editor'}
-            </h1>
-            <div className="flex items-center gap-2 text-xs text-neutral-500 mt-0.5">
-              <span>
-                Template:{' '}
-                <strong className="text-neutral-900">
-                  {templateId === 'modern' ? 'Modern Professional' : 'ATS Classic'}
-                </strong>
-              </span>
-              {lastSaved && (
-                <span className="flex items-center gap-1 text-emerald-600 font-medium">
-                  <CheckCircle className="w-3.5 h-3.5" /> Saved at {lastSaved}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/resumes"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 rounded-lg transition"
+              title="Back to Resumes Dashboard"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Resumes
+            </Link>
+
+            <div className="h-6 w-px bg-neutral-200 hidden sm:block" />
+
+            <div>
+              <h1 className="text-lg font-bold text-neutral-900 truncate">
+                {resume?.title || 'Resume Editor'}
+              </h1>
+              <div className="flex items-center gap-2 text-xs text-neutral-500 mt-0.5">
+                <span>
+                  Template:{' '}
+                  <strong className="text-neutral-900">
+                    {templateId === 'modern' ? 'Modern Professional' : 'ATS Classic'}
+                  </strong>
                 </span>
-              )}
+                {lastSaved && (
+                  <span className="flex items-center gap-1 text-emerald-600 font-medium">
+                    <CheckCircle className="w-3.5 h-3.5" /> Saved at {lastSaved}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 

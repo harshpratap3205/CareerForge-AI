@@ -9,6 +9,7 @@ export type BookingStatus =
   | 'PAYMENT_FAILED';
 
 export interface IConsultant extends Document {
+  userId?: mongoose.Types.ObjectId;
   name: string;
   email: string;
   specialty: string;
@@ -43,6 +44,7 @@ export interface IBooking extends Document {
 
 const ConsultantSchema = new Schema<IConsultant>(
   {
+    userId: { type: Schema.Types.ObjectId, ref: 'User' },
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     specialty: { type: String, required: true },
