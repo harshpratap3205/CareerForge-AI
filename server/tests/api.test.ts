@@ -23,9 +23,9 @@ describe('CareerForge API Test Suite', () => {
   beforeAll(async () => {
     const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/careerforge_test';
     if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(mongoUri);
+      await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 30000 });
     }
-  }, 30000);
+  }, 45000);
 
   afterAll(async () => {
     try {
@@ -194,7 +194,7 @@ describe('CareerForge API Test Suite', () => {
         isActive: true,
       });
       testConsultantId = consultant._id.toString();
-    });
+    }, 30000);
 
     it('should prevent booking slots in the past', async () => {
       const res = await request(app)

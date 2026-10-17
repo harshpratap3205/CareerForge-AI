@@ -27,6 +27,7 @@ export default function ResumePreviewPage() {
     try {
       const res = await api.put(`/resumes/${id}`, {
         templateId: newTemplate,
+        tiptapHtml: resume?.tiptapHtml,
         reRenderTemplate: true,
       });
       setResume(res.data.data.resume);

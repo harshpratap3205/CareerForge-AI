@@ -8,10 +8,10 @@ import { ArrowLeft, FileText } from 'lucide-react';
 import Link from 'next/link';
 
 const AVAILABLE_MODELS = [
-  { id: 'openai/gpt-oss-120b', name: 'Groq GPT-OSS 120B (Ultra Fast, Recommended)' },
-  { id: 'qwen/qwen3.8-27b', name: 'Groq Qwen 27B (Fast & Concise)' },
-  { id: 'gemini-flash-latest', name: 'Google Gemini Flash' },
-  { id: 'gemini-3.5-flash', name: 'Google Gemini 3.5 Flash' },
+  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B (Groq, Ultra Fast)' },
+  { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B (Groq, Instant)' },
+  { id: 'gemini-1.5-flash', name: 'Google Gemini 1.5 Flash' },
+  { id: 'gemini-2.0-flash', name: 'Google Gemini 2.0 Flash' },
 ];
 
 export default function CreateResumePage() {
@@ -21,7 +21,7 @@ export default function CreateResumePage() {
   const [rawSkills, setRawSkills] = useState('TypeScript, React, Node.js, Next.js, MongoDB, Redis, Docker, AWS');
   const [userBio, setUserBio] = useState('Full stack engineer specialized in high-performance cloud applications and microservices.');
   const [templateId, setTemplateId] = useState<'modern' | 'ats-classic'>('modern');
-  const [selectedModel, setSelectedModel] = useState('openai/gpt-oss-120b');
+  const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
 

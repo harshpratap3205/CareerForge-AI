@@ -6,6 +6,7 @@ import { Resume, IResume } from './resume.model.js';
 import { ResumeTemplateEngine } from './resume.templates.js';
 import { cacheDel } from '../../config/redis.js';
 import { DashboardService } from '../dashboard/dashboard.service.js';
+import { ChatService } from '../chat/chat.service.js';
 
 export class ResumeService {
   private static getGroqClient(): Groq | null {
@@ -119,7 +120,10 @@ export class ResumeService {
       resume.tiptapHtml = ResumeTemplateEngine.render(resume, resume.templateId);
     }
 
-    const { reRenderTemplate, ...dataToAssign } = updateData;
+    const { reRenderTemplate, tiptapHtml, ...dataToAssign } = updateData;
+    if (templateChanged || updateData.reRenderTemplate) {
+      delete (dataToAssign as any).tiptapContent;
+    }
     Object.assign(resume, dataToAssign);
 
     const nextVer = (resume.versions?.length || 0) + 1;
@@ -247,11 +251,11 @@ Return strictly a valid JSON object matching this schema:
 `;
 
     const modelsToTry = [
-      promptData.model || 'openai/gpt-oss-120b',
-      'openai/gpt-oss-120b',
-      'qwen/qwen3.8-27b',
-      'gemini-flash-latest',
-      'gemini-3.5-flash',
+      promptData.model || 'llama-3.3-70b-versatile',
+      'llama-3.3-70b-versatile',
+      'llama-3.1-8b-instant',
+      'gemini-1.5-flash',
+      'gemini-2.0-flash',
     ].filter((m, idx, arr) => arr.indexOf(m) === idx);
 
     for (const candidate of modelsToTry) {
@@ -260,9 +264,10 @@ Return strictly a valid JSON object matching this schema:
           const groq = this.getGroqClient();
           if (!groq) continue;
 
-          console.log(`[Resume AI] Generating structured resume with Groq model: ${candidate}`);
+          const resolvedGroq = ChatService.resolveGroqModel(candidate);
+          console.log(`[Resume AI] Generating structured resume with Groq model: ${resolvedGroq}`);
           const comp = await groq.chat.completions.create({
-            model: candidate,
+            model: resolvedGroq,
             messages: [
               {
                 role: 'system',
@@ -277,14 +282,15 @@ Return strictly a valid JSON object matching this schema:
           const raw = comp.choices[0]?.message?.content || '{}';
           const parsed = JSON.parse(raw);
           if (parsed && parsed.summary) {
-            console.log(`[Resume AI] Successfully generated resume with Groq (${candidate})`);
+            console.log(`[Resume AI] Successfully generated resume with Groq (${resolvedGroq})`);
             return parsed;
           }
         } else {
-          const gemini = this.getGeminiModel(candidate);
+          const resolvedGemini = ChatService.resolveGeminiModel(candidate);
+          const gemini = this.getGeminiModel(resolvedGemini);
           if (!gemini) continue;
 
-          console.log(`[Resume AI] Generating structured resume with Gemini model: ${candidate}`);
+          console.log(`[Resume AI] Generating structured resume with Gemini model: ${resolvedGemini}`);
           const res = await gemini.generateContent(prompt);
           const raw = res.response.text();
           const parsed = JSON.parse(raw);
