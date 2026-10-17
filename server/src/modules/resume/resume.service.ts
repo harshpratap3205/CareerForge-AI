@@ -89,8 +89,30 @@ export class ResumeService {
       resume.templateId = updateData.templateId;
     }
 
-    if (updateData.reRenderTemplate || (templateChanged && !updateData.tiptapHtml)) {
-      resume.tiptapHtml = ResumeTemplateEngine.render(resume, resume.templateId);
+    const incomingHtml = updateData.tiptapHtml || resume.tiptapHtml;
+
+    // Sync edited candidate name from HTML to keep structured personalInfo in sync
+    if (incomingHtml) {
+      const h1Match = incomingHtml.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+      if (h1Match) {
+        const rawName = h1Match[1].replace(/<[^>]+>/g, '').trim();
+        if (rawName && rawName.length > 0 && !/^your name$/i.test(rawName)) {
+          if (!resume.personalInfo) resume.personalInfo = {} as any;
+          resume.personalInfo.fullName = rawName;
+        }
+      }
+    }
+
+    if (updateData.reRenderTemplate || templateChanged) {
+      if (incomingHtml && incomingHtml.length > 50) {
+        resume.tiptapHtml = ResumeTemplateEngine.convertTemplate(
+          incomingHtml,
+          resume.templateId as 'modern' | 'ats-classic',
+          resume
+        );
+      } else {
+        resume.tiptapHtml = ResumeTemplateEngine.render(resume, resume.templateId);
+      }
     } else if (updateData.tiptapHtml) {
       resume.tiptapHtml = updateData.tiptapHtml;
     } else if (!resume.tiptapHtml) {

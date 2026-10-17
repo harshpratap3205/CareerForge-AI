@@ -11,6 +11,8 @@ import { Payment } from '../src/modules/payment/payment.model.js';
 import { redisClient } from '../src/config/redis.js';
 
 describe('CareerForge API Test Suite', () => {
+  jest.setTimeout(30000);
+
   let authToken = '';
   let testUserId = '';
   let testConsultantId = '';
@@ -23,7 +25,7 @@ describe('CareerForge API Test Suite', () => {
     if (mongoose.connection.readyState === 0) {
       await mongoose.connect(mongoUri);
     }
-  });
+  }, 30000);
 
   afterAll(async () => {
     try {

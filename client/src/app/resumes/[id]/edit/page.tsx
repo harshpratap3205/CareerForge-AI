@@ -92,11 +92,15 @@ export default function EditResumePage() {
       const html = currentEditor.getHTML();
       const json = currentEditor.getJSON();
 
-      await api.put(`/resumes/${id}`, {
+      const res = await api.put(`/resumes/${id}`, {
         templateId,
         tiptapHtml: html,
         tiptapContent: json,
       });
+
+      if (res.data?.data?.resume) {
+        setResume(res.data.data.resume);
+      }
 
       setLastSaved(new Date().toLocaleTimeString());
     } catch (err) {
@@ -110,8 +114,13 @@ export default function EditResumePage() {
     setTemplateId(newTemplate);
     setSaving(true);
     try {
+      const currentHtml = editor ? editor.getHTML() : resume?.tiptapHtml;
+      const currentJson = editor ? editor.getJSON() : undefined;
+
       const res = await api.put(`/resumes/${id}`, {
         templateId: newTemplate,
+        tiptapHtml: currentHtml,
+        tiptapContent: currentJson,
         reRenderTemplate: true,
       });
 

@@ -8,6 +8,86 @@ export class ResumeTemplateEngine {
     return this.renderModern(resume);
   }
 
+  static convertTemplate(
+    html: string,
+    targetTemplate: 'modern' | 'ats-classic',
+    resume?: Partial<IResume>
+  ): string {
+    if (!html || html.trim().length < 50) {
+      return this.render(resume || {}, targetTemplate);
+    }
+
+    if (targetTemplate === 'ats-classic') {
+      let converted = html;
+      // 1. Remove decorative SVGs
+      converted = converted.replace(/<svg[\s\S]*?<\/svg>/gi, '');
+
+      // 2. Remove modern decorative accent bar
+      converted = converted.replace(/<div[^>]*background:\s*#4f46e5[^>]*><\/div>/gi, '');
+
+      // 3. Switch Root Container Typography and colors to classic monochrome
+      converted = converted.replace(
+        /font-family:[^;"]*(?:-apple-system|BlinkMacSystemFont|Segoe UI)[^;"]*/gi,
+        "font-family: 'Times New Roman', Times, Georgia, serif"
+      );
+      converted = converted.replace(/color:\s*#(?:1e293b|0f172a)/gi, 'color: #000000');
+
+      // 4. Transform h1 to centered ATS style
+      converted = converted.replace(/<h1([^>]*)>([\s\S]*?)<\/h1>/gi, (_match, _attrs, nameText) => {
+        const cleanName = nameText.replace(/<[^>]+>/g, '').trim();
+        return `<h1 style="font-size: 22px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 4px 0; color: #000000; text-align: center;">${cleanName}</h1>`;
+      });
+
+      // 5. Replace colored section headings (h2) with ATS black underlined headings
+      converted = converted.replace(/<h2([^>]*)>([\s\S]*?)<\/h2>/gi, (_match, _attrs, headingText) => {
+        const cleanHeading = headingText.replace(/<[^>]+>/g, '').trim();
+        return `<h2 style="font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid #000000; padding-bottom: 2px; margin: 16px 0 6px 0; color: #000000;">${cleanHeading}</h2>`;
+      });
+
+      // 6. Neutralize colored borders and pill badges
+      converted = converted.replace(/border-left:\s*2px\s*solid\s*#e0e7ff;?/gi, 'border-left: none; padding-left: 0;');
+      converted = converted.replace(/background(?:-color)?:\s*#(?:eef2ff|f8fafc|f1f5f9);?/gi, 'background: transparent;');
+      converted = converted.replace(/border-radius:\s*9999px;?/gi, 'border-radius: 0;');
+      converted = converted.replace(/color:\s*#(?:4f46e5|4338ca|64748b|475569|334155);?/gi, 'color: #111111;');
+      converted = converted.replace(/border:\s*1px\s*solid\s*#(?:c7d2fe|cbd5e1|e2e8f0);?/gi, 'border: none;');
+
+      if (!converted.includes("'Times New Roman'")) {
+        converted = `<div style="font-family: 'Times New Roman', Times, Georgia, serif; color: #000000; line-height: 1.45; max-width: 100%;">${converted}</div>`;
+      }
+
+      return converted;
+    } else {
+      // Switching to Modern
+      let converted = html;
+      // 1. Switch Root Container Typography to Sans-Serif
+      converted = converted.replace(
+        /font-family:[^;"]*(?:'Times New Roman'|Times|Georgia|serif)[^;"]*/gi,
+        "font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+      );
+
+      // 2. Transform h1 to modern left-aligned style
+      converted = converted.replace(/<h1([^>]*)>([\s\S]*?)<\/h1>/gi, (_match, _attrs, nameText) => {
+        const cleanName = nameText.replace(/<[^>]+>/g, '').trim();
+        const formattedName = cleanName
+          .toLowerCase()
+          .replace(/(?:^|\s|-)\S/g, (char: string) => char.toUpperCase());
+        return `<h1 style="font-size: 26px; font-weight: 800; color: #0f172a; margin: 0 0 4px 0; letter-spacing: -0.02em; text-align: left;">${formattedName}</h1>`;
+      });
+
+      // 3. Transform h2 to modern indigo style
+      converted = converted.replace(/<h2([^>]*)>([\s\S]*?)<\/h2>/gi, (_match, _attrs, headingText) => {
+        const cleanHeading = headingText.replace(/<[^>]+>/g, '').trim().toUpperCase();
+        return `<h2 style="font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #4f46e5; margin: 18px 0 8px 0; border-bottom: none;">${cleanHeading}</h2>`;
+      });
+
+      if (!converted.includes('-apple-system')) {
+        converted = `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.5;">${converted}</div>`;
+      }
+
+      return converted;
+    }
+  }
+
   static renderModern(resume: Partial<IResume>): string {
     const { personalInfo, summary, experience, education, skills, projects, certifications, achievements } = resume;
 
