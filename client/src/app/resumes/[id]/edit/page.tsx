@@ -23,6 +23,8 @@ import {
   History,
   X,
   RotateCcw,
+  Loader2,
+  Cloud,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -34,6 +36,7 @@ export default function EditResumePage() {
   const [templateId, setTemplateId] = useState<'modern' | 'ats-classic'>('modern');
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'unsaved' | 'saving' | 'saved'>('idle');
   const [showVersionModal, setShowVersionModal] = useState(false);
 
   const isLoadedRef = useRef(false);
@@ -50,12 +53,14 @@ export default function EditResumePage() {
     },
     onUpdate: ({ editor }) => {
       if (!isLoadedRef.current) return;
+      setSaveStatus('unsaved');
       if (autosaveTimeoutRef.current) {
         clearTimeout(autosaveTimeoutRef.current);
       }
-      autosaveTimeoutRef.current = setTimeout(() => {
-        handleSave(true, editor);
-      }, 2500);
+      autosaveTimeoutRef.current = setTimeout(async () => {
+        setSaveStatus('saving');
+        await handleSave(true, editor);
+      }, 1500);
     },
   });
 
@@ -91,6 +96,7 @@ export default function EditResumePage() {
   const handleSave = async (silent = false, currentEditor = editor) => {
     if (!currentEditor) return;
     if (!silent) setSaving(true);
+    setSaveStatus('saving');
 
     try {
       const html = currentEditor.getHTML();
@@ -107,8 +113,10 @@ export default function EditResumePage() {
       }
 
       setLastSaved(new Date().toLocaleTimeString());
+      setSaveStatus('saved');
     } catch (err) {
       console.error('Error saving resume:', err);
+      setSaveStatus('unsaved');
     } finally {
       if (!silent) setSaving(false);
     }
@@ -179,9 +187,21 @@ export default function EditResumePage() {
                     {templateId === 'modern' ? 'Modern Professional' : 'ATS Classic'}
                   </strong>
                 </span>
-                {lastSaved && (
-                  <span className="flex items-center gap-1 text-emerald-600 font-medium">
-                    <CheckCircle className="w-3.5 h-3.5" /> Saved at {lastSaved}
+                {saveStatus === 'saving' ? (
+                  <span className="inline-flex items-center gap-1.5 text-amber-700 font-semibold bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200 animate-pulse text-[11px]">
+                    <Loader2 className="w-3 h-3 animate-spin text-amber-600" /> Autosaving...
+                  </span>
+                ) : saveStatus === 'unsaved' ? (
+                  <span className="inline-flex items-center gap-1.5 text-indigo-700 font-medium bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-200 text-[11px]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" /> Editing (saving shortly...)
+                  </span>
+                ) : lastSaved ? (
+                  <span className="inline-flex items-center gap-1.5 text-emerald-700 font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 text-[11px]">
+                    <CheckCircle className="w-3 h-3 text-emerald-600" /> Autosaved at {lastSaved}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-neutral-500 font-medium bg-neutral-100 px-2.5 py-0.5 rounded-full text-[11px]">
+                    <Cloud className="w-3 h-3 text-neutral-400" /> Autosave Active
                   </span>
                 )}
               </div>
@@ -216,10 +236,18 @@ export default function EditResumePage() {
 
             <button
               onClick={() => handleSave(false)}
-              disabled={saving}
+              disabled={saving || saveStatus === 'saving'}
               className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-medium rounded transition disabled:opacity-50"
             >
-              <Save className="w-3.5 h-3.5" /> {saving ? 'Saving...' : 'Save Changes'}
+              {saving || saveStatus === 'saving' ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-3.5 h-3.5" /> Save Changes
+                </>
+              )}
             </button>
           </div>
         </div>
