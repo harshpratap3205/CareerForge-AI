@@ -136,6 +136,7 @@ export class BookingService {
       email: string;
       phone: string;
       meetingAgenda: string;
+      timeZone?: string;
     }
   ): Promise<IBooking> {
     const today = new Date();
@@ -180,6 +181,7 @@ export class BookingService {
       consultantId: consultant._id,
       date: data.date,
       timeSlot: data.timeSlot,
+      timeZone: data.timeZone || 'Asia/Kolkata',
       name: data.name,
       email: data.email,
       phone: data.phone,

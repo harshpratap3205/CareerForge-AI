@@ -173,6 +173,7 @@ export class PaymentService {
       date: booking.date,
       timeSlot: booking.timeSlot,
       agenda: booking.meetingAgenda,
+      timeZone: (booking as any).timeZone || 'Asia/Kolkata',
     });
 
     console.log(`[Payment Workflow] Step 4/4: Transitioning Booking #${booking._id} to CONFIRMED with Meeting Link: ${calendarResult?.meetingUrl}`);
@@ -181,7 +182,8 @@ export class PaymentService {
       meetingLink: calendarResult?.meetingUrl,
     });
 
-    await NotificationService.sendBookingConfirmationEmail({
+    // Non-blocking background email dispatch so SMTP timeouts on Render never delay payment verification
+    NotificationService.sendBookingConfirmationEmail({
       userName: booking.name,
       userEmail: booking.email,
       consultantName: consultant?.name || 'Career Expert',
@@ -189,6 +191,8 @@ export class PaymentService {
       timeSlot: booking.timeSlot,
       meetingLink: calendarResult?.meetingUrl || 'https://meet.google.com',
       bookingId: booking._id.toString(),
+    }).catch((emailErr: any) => {
+      console.warn(`[Payment Workflow] Background email notification failed: ${emailErr.message}`);
     });
 
     console.log(`[Payment Workflow] Complete: Booking #${booking._id} is CONFIRMED, calendar synchronized, and dashboard cache invalidated.`);

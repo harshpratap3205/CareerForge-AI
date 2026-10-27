@@ -130,6 +130,7 @@ export default function BookConsultationPage() {
         consultantId: selectedConsultantId,
         date,
         timeSlot,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata',
         name: name.trim(),
         email: email.trim(),
         phone: phone.trim(),

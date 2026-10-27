@@ -32,6 +32,7 @@ export interface IBooking extends Document {
   email: string;
   phone: string;
   meetingAgenda: string;
+  timeZone?: string;
   status: BookingStatus;
   amount: number;
   paymentIntentId?: string;
@@ -104,6 +105,10 @@ const BookingSchema = new Schema<IBooking>(
     meetingAgenda: {
       type: String,
       required: true,
+    },
+    timeZone: {
+      type: String,
+      default: 'Asia/Kolkata',
     },
     status: {
       type: String,

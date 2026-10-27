@@ -20,6 +20,9 @@ export class NotificationService {
         user: config.smtp.user,
         pass: config.smtp.pass,
       },
+      connectionTimeout: 4000,
+      greetingTimeout: 4000,
+      socketTimeout: 6000,
     });
   }
 
@@ -170,6 +173,12 @@ export class NotificationService {
     }
   }
 
+  private static generateGoogleMeetLink(): string {
+    const chars = 'abcdefghijklmnopqrstuvwxyz';
+    const rand = (n: number) => Array.from({ length: n }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    return `https://meet.google.com/${rand(3)}-${rand(4)}-${rand(3)}`;
+  }
+
   static async createGoogleCalendarEvent(params: {
     userName: string;
     userEmail: string;
@@ -177,6 +186,7 @@ export class NotificationService {
     date: string;
     timeSlot: string;
     agenda: string;
+    timeZone?: string;
   }): Promise<{ eventId: string; meetingUrl: string } | null> {
     const isConfigured = Boolean(
       config.google.clientId &&
@@ -187,7 +197,7 @@ export class NotificationService {
     );
 
     if (!isConfigured) {
-      const generatedLink = `https://meet.google.com/cfg-${Math.random().toString(36).substring(2, 6)}-${Math.random().toString(36).substring(2, 5)}`;
+      const generatedLink = this.generateGoogleMeetLink();
       const mockEventId = `cal_evt_${Date.now()}`;
       console.log(`[Google Calendar] Generated Consultation Calendar Event:`);
       console.log(`  - Event ID: ${mockEventId}`);
@@ -210,7 +220,7 @@ export class NotificationService {
 
       const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
 
-      // Robustly parse start time from time slot formats (e.g. "03:00 PM - 04:00 PM", "15:00", "3 to 4 PM")
+      // Robustly parse start time from time slot formats (e.g. "03:00 PM - 04:00 PM", "10:00 AM - 11:00 AM", "15:00", "3 to 4 PM")
       const slotStr = String(params.timeSlot || '').trim();
       const startChunk = slotStr.includes('-') ? slotStr.split('-')[0].trim() : slotStr.split('to')[0].trim();
       const isPM = /pm/i.test(startChunk) || /pm/i.test(slotStr);
@@ -226,18 +236,21 @@ export class NotificationService {
         if (isAM && hour === 12) hour = 0;
       }
 
-      const startDateTime = new Date(`${params.date}T00:00:00Z`);
-      startDateTime.setUTCHours(hour, minute, 0, 0);
-      const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000);
+      const userTimeZone = params.timeZone || 'Asia/Kolkata';
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const startIso = `${params.date}T${pad(hour)}:${pad(minute)}:00`;
+      const endHour = (hour + 1) % 24;
+      const endIso = `${params.date}T${pad(endHour)}:${pad(minute)}:00`;
 
       const response = await calendar.events.insert({
         calendarId: 'primary',
         conferenceDataVersion: 1,
+        sendUpdates: 'all',
         requestBody: {
           summary: `Career Consultation: ${params.userName} & ${params.consultantName}`,
           description: `Agenda: ${params.agenda}`,
-          start: { dateTime: startDateTime.toISOString() },
-          end: { dateTime: endDateTime.toISOString() },
+          start: { dateTime: startIso, timeZone: userTimeZone },
+          end: { dateTime: endIso, timeZone: userTimeZone },
           attendees: [{ email: params.userEmail }],
           conferenceData: {
             createRequest: {
@@ -252,7 +265,7 @@ export class NotificationService {
       const meetingUrl =
         response.data.hangoutLink ||
         response.data.conferenceData?.entryPoints?.[0]?.uri ||
-        `https://meet.google.com/cfg-${Math.random().toString(36).substring(2, 6)}`;
+        this.generateGoogleMeetLink();
 
       console.log(`[Google Calendar] Successfully created live event: ID=${eventId}, MeetingUrl=${meetingUrl}`);
       return { eventId, meetingUrl };
@@ -260,7 +273,7 @@ export class NotificationService {
       console.warn(`[Google Calendar] Google API error (${error.message}). Continuing gracefully with meeting link.`);
       return {
         eventId: `fallback_${Date.now()}`,
-        meetingUrl: `https://meet.google.com/cfg-${Math.random().toString(36).substring(2, 6)}`,
+        meetingUrl: this.generateGoogleMeetLink(),
       };
     }
   }
